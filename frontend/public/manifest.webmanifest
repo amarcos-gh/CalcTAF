@@ -1,0 +1,30 @@
+{
+  "name": "CalcTAF Campo",
+  "short_name": "CalcTAF Campo",
+  "description": "Aplicação do Teste de Aptidão Física do Exército Brasileiro.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#3f7f2f",
+  "theme_color": "#3f7f2f",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

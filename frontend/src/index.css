@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: #f1f5f9;
+}
+
+/* =======================================
+   IMPRESSÃO DOS RELATÓRIOS CalcTAF
+======================================= */
+
+@page{
+    size:A4 portrait;
+    margin:10mm;
+}
+
+@media print{
+
+    html,
+    body{
+
+        background:#fff !important;
+
+    }
+
+    /* Esconde toda a barra lateral */
+
+    .layout-sidebar{
+
+        display:none !important;
+
+    }
+
+    /* Faz o conteúdo ocupar a folha inteira */
+
+    .layout-main{
+
+        margin:0 !important;
+
+        padding:0 !important;
+
+        width:100% !important;
+
+        max-width:100% !important;
+
+    }
+
+    /* Esconde filtros e botão PDF */
+
+    .nao-imprimir{
+
+        display:none !important;
+
+    }
+
+    /* Área do relatório */
+
+    #relatorio-impressao{
+
+        display:block !important;
+
+        margin:0 !important;
+
+        padding:0 !important;
+
+        width:100% !important;
+
+    }
+
+    /* Remove sombras */
+
+    .shadow,
+
+    .shadow-md,
+
+    .shadow-lg{
+
+        box-shadow:none !important;
+
+    }
+
+    /* Remove cantos arredondados */
+
+    .rounded,
+
+    .rounded-lg,
+
+    .rounded-xl,
+
+    .rounded-2xl{
+
+        border-radius:0 !important;
+
+    }
+
+    table{
+
+        width:100%;
+
+        border-collapse:collapse;
+
+    }
+
+    th,
+
+    td{
+
+        border:1px solid #000;
+
+        padding:4px;
+
+    }
+
+}

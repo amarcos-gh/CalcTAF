@@ -1,15 +1,43 @@
 import { Router } from "express";
 
-import { criarMilitar, excluirMilitar, atualizarMilitar, listarMilitares } from "../controllers/militar.controller.js";
+import auth from "../middlewares/auth.middleware.js";
+import autorizar from "../middlewares/permissao.middleware.js";
+
+import {
+  criarMilitar,
+  excluirMilitar,
+  atualizarMilitar,
+  listarMilitares
+} from "../controllers/militar.controller.js";
 
 const router = Router();
 
-router.post("/", criarMilitar);
+router.post(
+  "/",
+  auth,
+  autorizar("ADMINISTRADOR", "OPERADOR"),
+  criarMilitar
+);
 
-router.delete("/:id", excluirMilitar);
+router.put(
+  "/:id",
+  auth,
+  autorizar("ADMINISTRADOR", "OPERADOR"),
+  atualizarMilitar
+);
 
-router.put("/:id", atualizarMilitar);
+router.delete(
+  "/:id",
+  auth,
+  autorizar("ADMINISTRADOR", "OPERADOR"),
+  excluirMilitar
+);
 
-router.get("/", listarMilitares);
+router.get(
+  "/",
+  auth,
+  autorizar("ADMINISTRADOR", "OPERADOR"),
+  listarMilitares
+);
 
 export default router;

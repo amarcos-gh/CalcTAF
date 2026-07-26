@@ -32,6 +32,8 @@ export default function MainLayout({
 
   const [aba, setAba] = useState("importar");
 
+  const perfil = localStorage.getItem("perfil");
+
   useEffect(() => {
 
     carregarDados();
@@ -155,122 +157,100 @@ return (
       
       <nav className="space-y-2">
 
-  <Link
-    to="/militares"
-    className={`
-      block
-      rounded-xl
-      p-3
-      ${
-        location.pathname === "/militares"
+        {(perfil === "ADMINISTRADOR" || perfil === "OPERADOR") && (
+          <Link
+            to="/militares"
+            className={`
+              block
+              rounded-xl
+              p-3
+              ${
+                location.pathname === "/militares"
+                  ? "bg-green-800 text-yellow-300 font-bold"
+                  : "hover:bg-green-800"
+              }
+            `}
+          >
+            Militares
+          </Link>
+        )}
 
-          ? "bg-green-800 text-yellow-300 font-bold"
+        {(perfil === "ADMINISTRADOR" || perfil === "AVALIADOR") && (
+          <Link
+            to="/avaliacoes"
+            className={`
+              block
+              rounded-xl
+              p-3
+              ${
+                location.pathname === "/avaliacoes"
+                  ? "bg-green-800 text-yellow-300 font-bold"
+                  : "hover:bg-green-800"
+              }
+            `}
+          >
+            Avaliações
+          </Link>
+        )}
 
-          : "hover:bg-green-800"
-      }
-    `}
-  >
+        {(perfil === "ADMINISTRADOR" || perfil === "AVALIADOR") && (
+          <button
+            onClick={() => navigate("/coletas")}
+            className={`
+              w-full
+              text-left
+              rounded-xl
+              p-3
+              ${
+                location.pathname === "/coletas"
+                  ? "bg-green-800 text-yellow-300 font-bold"
+                  : "hover:bg-green-800"
+              }
+            `}
+          >
+            Coletas
+          </button>
+        )}
 
-    Militares
+        {(perfil === "ADMINISTRADOR" ||
+          perfil === "OPERADOR" ||
+          perfil === "AVALIADOR") && (
+          <button
+            onClick={() => navigate("/relatorios")}
+            className={`
+              w-full
+              text-left
+              rounded-xl
+              p-3
+              ${
+                location.pathname === "/relatorios"
+                  ? "bg-green-800 text-yellow-300 font-bold"
+                  : "hover:bg-green-800"
+              }
+            `}
+          >
+            Relatórios
+          </button>
+        )}
 
-  </Link>
+        <button
+          onClick={() => {
+            localStorage.clear();
+            navigate("/");
+          }}
+          className="
+            block
+            rounded-xl
+            p-3
+            hover:bg-green-800
+            text-left
+            w-full
+          "
+        >
+          ❌ Sair
+        </button>
 
-  <Link
-    to="/avaliacoes"
-    className={`
-      block
-      rounded-xl
-      p-3
-      ${
-        location.pathname === "/avaliacoes"
-
-          ? "bg-green-800 text-yellow-300 font-bold"
-
-          : "hover:bg-green-800"
-      }
-    `}
-  >
-
-    Avaliações
-
-  </Link>
-
-  {/* COLETAS */}
-
-  <button
-    onClick={() => navigate("/coletas")}
-    className={`
-      w-full
-      text-left
-      rounded-xl
-      p-3
-      ${
-        location.pathname === "/coletas"
-          ? "bg-green-800 text-yellow-300 font-bold"
-          : "hover:bg-green-800"
-      }
-    `}
-  >
-    Coletas
-  </button>
-
-  {/* RELATÓRIOS */}
-
-  <div>
-
-    <button
-      onClick={() => {
-
-        navigate("/relatorios");
-
-      }}
-      className={`
-        w-full
-        text-left
-        rounded-xl
-        p-3
-        ${
-          location.pathname === "/relatorios"
-
-            ? "bg-green-800 text-yellow-300 font-bold"
-
-            : "hover:bg-green-800"
-        }
-      `}
-    >
-
-      Relatórios
-
-    </button>
-
-  </div>
-
-      <button
-
-        onClick={() => {
-
-          localStorage.clear();
-
-          navigate("/");
-
-        }}
-
-        className="
-          block
-          rounded-xl
-          p-3
-          hover:bg-green-800
-          text-left
-          w-full
-        "
-
-      >
-
-        ❌ Sair
-
-      </button>
-
-    </nav>
+      </nav>
 
   </aside>
 

@@ -20,6 +20,8 @@ import CadastroUsuario from "./pages/CadastroUsuario/CadastroUsuario";
 
 import RecuperarSenha from "./pages/RecuperarSenha/RecuperarSenha";
 
+import ProtectedRoute from "./components/ProtectedRoute";
+
 export default function App() {
 
   return (
@@ -37,67 +39,53 @@ export default function App() {
         />
 
         <Route
-
           path="/militares"
-
           element={
-
-            <MainLayout>
-
-              <Militares />
-
-            </MainLayout>
-
+            <ProtectedRoute permissoes={["ADMINISTRADOR", "OPERADOR"]}>
+              <MainLayout>
+                <Militares />
+              </MainLayout>
+            </ProtectedRoute>
           }
-
         />
 
         <Route
-
           path="/avaliacoes"
-
           element={
-
-            <MainLayout>
-
-              <Avaliacoes />
-
-            </MainLayout>
-
+            <ProtectedRoute permissoes={["ADMINISTRADOR", "AVALIADOR"]}>
+              <MainLayout>
+                <Avaliacoes />
+              </MainLayout>
+            </ProtectedRoute>
           }
-
         />
 
         <Route
-
           path="/coletas"
-
           element={
-
-            <MainLayout>
-
-              <Coletas />
-
-            </MainLayout>
-
+            <ProtectedRoute permissoes={["ADMINISTRADOR", "AVALIADOR"]}>
+              <MainLayout>
+                <Coletas />
+              </MainLayout>
+            </ProtectedRoute>
           }
-
         />
 
         <Route
-
           path="/relatorios"
-
           element={
-
-            <MainLayout>
-
-              <Relatorios />
-
-            </MainLayout>
-
+            <ProtectedRoute
+              permissoes={[
+                "ADMINISTRADOR",
+                "OPERADOR",
+                "AVALIADOR"
+              ]}
+            >
+              <MainLayout>
+                <Relatorios />
+              </MainLayout>
+            </ProtectedRoute>
           }
-
         />
 
         <Route

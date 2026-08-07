@@ -2,6 +2,11 @@ import prisma from "../config/prisma.js";
 
 import bcrypt from "bcrypt";
 
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET =
+  process.env.JWT_SECRET || "calctaf_web_secret";
+
 export async function cadastrarUsuario(req, res) {
 
   try {
@@ -100,91 +105,94 @@ export async function loginUsuario(req, res) {
 
   try {
 
-    const {
+    const { email, senha } = req.body;
 
-      email,
+    const usuario = await prisma.usuario.findUnique({
 
-      senha
+      where: { email },
 
-    } = req.body;
+      include: { om: true }
 
-    const usuario =
+    });
 
-      await prisma.usuario.findUnique({
-
-        where: {
-
-          email
-        },
-
-        include: {
-
-          om: true
-        }
-      });
-
-    if (
-
-      !usuario
-
-    ) {
+    if (!usuario) {
 
       return res.status(400).json({
-
-        error:
-
-          "Usuário não encontrado."
+        error: "Usuário não encontrado."
       });
+
     }
 
-    const senhaCorreta =
+    if (usuario.status === "PENDENTE") {
 
-      await bcrypt.compare(
+      return res.status(403).json({
+        error:
+          "Sua conta ainda está aguardando aprovação do Administrador."
+      });
 
-        senha,
+    }
 
-        usuario.senha
-      );
+    if (usuario.status === "BLOQUEADO") {
 
-    if (
+      return res.status(403).json({
+        error:
+          "Sua conta encontra-se bloqueada. Procure o Administrador."
+      });
 
-      !senhaCorreta
+    }
 
-    ) {
+    if (!usuario.perfil) {
+
+      return res.status(403).json({
+        error:
+          "Sua conta ainda não possui um perfil de acesso."
+      });
+
+    }
+
+    const senhaCorreta = await bcrypt.compare(
+      senha,
+      usuario.senha
+    );
+
+    if (!senhaCorreta) {
 
       return res.status(400).json({
-
-        error:
-
-          "Senha inválida."
+        error: "Senha inválida."
       });
+
     }
+
+    const token = jwt.sign(
+      {
+        usuarioId: usuario.id,
+        perfil: usuario.perfil,
+        omId: usuario.omId
+      },
+      JWT_SECRET,
+      {
+        expiresIn: "12h"
+      }
+    );
 
     return res.json({
 
-      usuarioId:
+      token,
 
-        usuario.id,
+      usuarioId: usuario.id,
 
-      nome:
+      nome: usuario.nome,
 
-        usuario.nome,
+      perfil: usuario.perfil,
 
-      perfil:
+      omId: usuario.om.id,
 
-        usuario.perfil,
+      nomeOM: usuario.om.sigla,
 
-      omId:
+      codom: usuario.om.codom,
 
-        usuario.om.id,
+      subunidade: usuario.subunidade
 
-      nomeOM:
-
-        usuario.om.sigla,
-
-      codom:
-
-        usuario.om.codom
     });
 
   } catch (error) {
@@ -192,10 +200,9 @@ export async function loginUsuario(req, res) {
     console.error(error);
 
     return res.status(500).json({
-
-      error:
-
-        error.message
+      error: error.message
     });
+
   }
+
 }

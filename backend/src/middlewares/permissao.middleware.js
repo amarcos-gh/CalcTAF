@@ -10,6 +10,13 @@ export default function autorizar(...perfisPermitidos) {
 
     }
 
+    // Perfil GERAL possui acesso total
+    if (req.usuario.perfil === "GERAL") {
+
+      return next();
+
+    }
+
     if (!perfisPermitidos.includes(req.usuario.perfil)) {
 
       return res.status(403).json({

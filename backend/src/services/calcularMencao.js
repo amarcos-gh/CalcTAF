@@ -92,7 +92,9 @@ export default async function calcularMencao({
         }
       ]
     });
-
+console.log("BUSCA");
+console.table(indices);
+console.log("Quantidade:", indices.length);
   for (
 
     const indice

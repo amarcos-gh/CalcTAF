@@ -1,5 +1,7 @@
 import prisma from "../../config/prisma.js";
 
+import bcrypt from "bcryptjs";
+
 function calcularIdade(dataNascimento) {
 
   if (!dataNascimento) return null;
@@ -23,6 +25,20 @@ function calcularIdade(dataNascimento) {
   return idade;
 }
 
+function gerarCodigoAutenticacao() {
+
+  return String(
+
+    Math.floor(
+
+      100000 + Math.random() * 900000
+
+    )
+
+  );
+
+}
+
 export async function buscarMilitares(req, res) {
 
   try {
@@ -35,7 +51,9 @@ export async function buscarMilitares(req, res) {
 
       numeroTAF,
 
-      numeroChamada
+      numeroChamada,
+
+      subunidadeId
 
     } = req.query;
 
@@ -85,19 +103,27 @@ export async function buscarMilitares(req, res) {
 
     }
 
+    const filtroMilitar = {
+
+      ativo: true,
+
+      omId: Number(omId)
+
+    };
+
+    if (subunidadeId && Number(subunidadeId) > 0) {
+
+      filtroMilitar.subunidadeId = Number(subunidadeId);
+
+    }
+
     // =====================================================
     // TOTAL DE MILITARES DA OM
     // =====================================================
 
     const total = await prisma.militar.count({
 
-      where: {
-
-        omId: Number(omId),
-
-        ativo: true
-
-      }
+      where: filtroMilitar
 
     });
 
@@ -115,11 +141,7 @@ export async function buscarMilitares(req, res) {
 
           chamadaId,
 
-          militar: {
-
-            omId: Number(omId)
-
-          }
+          militar: filtroMilitar
 
         }
 
@@ -150,9 +172,7 @@ export async function buscarMilitares(req, res) {
 
       where: {
 
-        ativo: true,
-
-        omId: Number(omId),
+        ...filtroMilitar,
 
         ...filtroPesquisa
 
@@ -266,7 +286,7 @@ export async function buscarChamada(req, res) {
 
     const ano = new Date().getFullYear();
 
-    const campanha = await prisma.campanhaTAF.findUnique({
+    const campanhaBD = await prisma.campanhaTAF.findUnique({
 
       where: {
 
@@ -282,7 +302,7 @@ export async function buscarChamada(req, res) {
 
     });
 
-    if (!campanha) {
+    if (!campanhaBD) {
 
       return res.status(404).json({
 
@@ -291,6 +311,28 @@ export async function buscarChamada(req, res) {
       });
 
     }
+
+    const campanha = {
+
+      ...campanhaBD,
+
+      periodoInicio:
+
+        campanhaBD.periodoInicio
+
+          ?.toISOString()
+
+          .slice(0, 10),
+
+      periodoFim:
+
+        campanhaBD.periodoFim
+
+          ?.toISOString()
+
+          .slice(0, 10)
+
+    };
 
     const chamada = await prisma.chamadaTAF.findUnique({
 
@@ -352,7 +394,11 @@ export async function exportarColeta(req, res) {
 
       numeroTAF,
 
-      numeroChamada
+      numeroChamada,
+
+      subunidadeId,
+
+      militares: militaresIds
 
     } = req.query;
 
@@ -384,6 +430,48 @@ export async function exportarColeta(req, res) {
 
     }
 
+    const filtroMilitar = {
+
+      ativo: true,
+
+      omId: Number(omId)
+
+    };
+
+    if (subunidadeId && Number(subunidadeId) > 0) {
+
+      filtroMilitar.subunidadeId = Number(subunidadeId);
+
+    }
+
+    // =====================================================
+    // MILITARES SELECIONADOS PELO ADMINISTRADOR
+    // =====================================================
+
+    const militaresSelecionados =
+
+      militaresIds
+
+        ? militaresIds
+
+            .split(",")
+
+            .map(id => Number(id))
+
+            .filter(id => Number.isInteger(id) && id > 0)
+
+        : [];
+
+    if (militaresSelecionados.length > 0) {
+
+      filtroMilitar.id = {
+
+        in: militaresSelecionados
+
+      };
+
+    }
+
     const chamada = await prisma.chamadaTAF.findUnique({
 
       where: {
@@ -408,7 +496,73 @@ export async function exportarColeta(req, res) {
 
       });
 
-    }    
+    }
+    
+    // =====================================================
+    // DADOS DA COLETA
+    // =====================================================
+
+    const om = await prisma.oM.findUnique({
+
+      where: {
+
+        id: Number(omId)
+
+      }
+
+    });
+
+    const subunidade =
+      subunidadeId && Number(subunidadeId) > 0
+
+        ? await prisma.subunidade.findUnique({
+
+            where: {
+
+              id: Number(subunidadeId)
+
+            }
+
+          })
+
+        : null;
+
+    const avaliador = await prisma.usuario.findFirst({
+
+      where: {
+
+        perfil: "AVALIADOR",
+
+        omId: Number(omId),
+
+        subunidade: subunidade?.nome
+
+      },
+
+      select: {
+
+        id: true,
+
+        nome: true,
+
+        email: true,
+
+        subunidade: true
+
+      }
+
+    });
+
+    if (!avaliador) {
+
+      return res.status(400).json({
+
+        error:
+          "Nenhum avaliador cadastrado para esta Subunidade."
+
+      });
+
+    }
     
     // =====================================================
     // DAQUI EM DIANTE COMEÇA A NOVA LÓGICA DE EXPORTAÇÃO
@@ -425,13 +579,7 @@ export async function exportarColeta(req, res) {
 
       militares = await prisma.militar.findMany({
 
-        where: {
-
-          ativo: true,
-
-          omId: Number(omId)
-
-        },
+        where: filtroMilitar,
 
         include: {
 
@@ -506,13 +654,7 @@ export async function exportarColeta(req, res) {
 
       const militaresOM = await prisma.militar.findMany({
 
-        where: {
-
-          ativo: true,
-
-          omId: Number(omId)
-
-        },
+        where: filtroMilitar,
 
         include: {
 
@@ -601,7 +743,81 @@ export async function exportarColeta(req, res) {
     }));
 
     // =====================================================
-    // OBJETO DA COLETA
+    // CÓDIGO DE AUTENTICAÇÃO
+    // =====================================================
+
+    const codigoAutenticacao = gerarCodigoAutenticacao();
+
+    const hashAutenticacao = await bcrypt.hash(
+
+      codigoAutenticacao,
+
+      10
+
+    );
+
+    // =====================================================
+    // GRAVA O HASH, A DATA E O AVALIADOR NA CHAMADA
+    // =====================================================
+
+    await prisma.chamadaTAF.update({
+
+      where: {
+
+        id: chamada.id
+
+      },
+
+      data: {
+
+        avaliadorId: avaliador.id,
+
+        codigoAutenticacaoHash: hashAutenticacao,
+
+        codigoGeradoEm: new Date()
+
+      }
+
+    });
+
+    // =====================================================
+    // RECARREGA A CHAMADA ATUALIZADA
+    // =====================================================
+
+    const chamadaAtualizada =
+      await prisma.chamadaTAF.findUnique({
+
+        where: {
+
+          id: chamada.id
+
+        }
+
+      });
+
+    // =====================================================
+    // ORDERBY
+    // =====================================================
+
+    const indicesTAF =
+      await prisma.indiceTAF.findMany({
+
+        orderBy: [
+
+          { segmento: "asc" },
+
+          { cursoCodigo: "asc" },
+
+          { exercicio: "asc" },
+
+          { idadeMin: "asc" }
+
+        ]
+
+      });
+
+    // =====================================================
+    // DADOS DA COLETA
     // =====================================================
 
     const coleta = {
@@ -616,21 +832,233 @@ export async function exportarColeta(req, res) {
 
       campanha,
 
-      chamada,
+      chamada: chamadaAtualizada,
 
-      militares
+      om,
+
+      subunidade,
+
+      avaliador,
+
+      hashAutenticacao,
+
+      militares,
+
+      indicesTAF
 
     };
 
-    return res.json(coleta);
+    return res.json({
 
-  } catch (error) {
+      coleta,
+
+      codigoAutenticacao
+
+    });
+
+    } catch (error) {
+
+      console.error(error);
+
+      return res.status(500).json({
+
+        error: "Erro ao exportar coleta."
+
+      });
+
+    }
+
+}
+
+// =====================================================
+// IMPORTAÇÃO DOS RESULTADOS
+// =====================================================
+
+export async function importarResultados(req, res) {
+
+  try {
+
+    const resultados = req.body;
+
+    // ==========================================
+    // VALIDA TIPO
+    // ==========================================
+
+    if (
+
+      resultados.tipo !== "RESULTADO_AVALIACAO"
+
+    ) {
+
+      return res.status(400).json({
+
+        error: "Arquivo de resultados inválido."
+
+      });
+
+    }
+
+    // ==========================================
+    // VALIDA VERSÃO
+    // ==========================================
+
+    if (
+
+      String(resultados.versao) !== "1.0"
+
+    ) {
+
+      return res.status(400).json({
+
+        error: "Versão do arquivo incompatível."
+
+      });
+
+    }
+
+    // ==========================================
+    // VALIDA EXISTÊNCIA DAS AVALIAÇÕES
+    // ==========================================
+
+    if (
+
+      !Array.isArray(resultados.avaliacoes) ||
+
+      resultados.avaliacoes.length === 0
+
+    ) {
+
+      return res.status(400).json({
+
+        error: "Arquivo sem avaliações."
+
+      });
+
+    }
+
+    let importadas = 0;
+
+    for (const avaliacao of resultados.avaliacoes) {
+
+      const chamada = await prisma.chamadaTAF.findUnique({
+
+        where: {
+
+          campanhaId_numeroChamada: {
+
+            campanhaId: resultados.campanha.id,
+
+            numeroChamada: resultados.chamada.numeroChamada
+
+          }
+
+        }
+
+      });
+
+      if (!chamada) {
+
+        continue;
+
+      }
+
+      await prisma.avaliacaoTAF.upsert({
+
+        where: {
+
+          militarId_chamadaId: {
+
+            militarId: avaliacao.militarId,
+
+            chamadaId: chamada.id
+
+          }
+
+        },
+
+        create: {
+
+          militarId: avaliacao.militarId,
+
+          chamadaId: chamada.id,
+
+          corrida: avaliacao.corrida,
+
+          mencaoCorrida: avaliacao.mencaoCorrida,
+
+          flexao: avaliacao.flexao,
+
+          mencaoFlexao: avaliacao.mencaoFlexao,
+
+          abdominal: avaliacao.abdominal,
+
+          mencaoAbdominal: avaliacao.mencaoAbdominal,
+
+          barra: avaliacao.barra,
+
+          mencaoBarra: avaliacao.mencaoBarra,
+
+          ppm: avaliacao.ppm,
+
+          mencaoPPM: avaliacao.mencaoPPM,
+
+          mencaoFinal: avaliacao.mencaoFinal,
+
+          situacao: avaliacao.status
+
+        },
+
+        update: {
+
+          corrida: avaliacao.corrida,
+
+          mencaoCorrida: avaliacao.mencaoCorrida,
+
+          flexao: avaliacao.flexao,
+
+          mencaoFlexao: avaliacao.mencaoFlexao,
+
+          abdominal: avaliacao.abdominal,
+
+          mencaoAbdominal: avaliacao.mencaoAbdominal,
+
+          barra: avaliacao.barra,
+
+          mencaoBarra: avaliacao.mencaoBarra,
+
+          ppm: avaliacao.ppm,
+
+          mencaoPPM: avaliacao.mencaoPPM,
+
+          mencaoFinal: avaliacao.mencaoFinal,
+
+          situacao: avaliacao.status
+
+        }
+
+      });
+
+      importadas++;
+
+    }
+
+    return res.json({
+
+      message: "Importação concluída.",
+
+      importadas
+
+    });
+
+  }
+
+  catch (error) {
 
     console.error(error);
 
     return res.status(500).json({
 
-      error: "Erro ao exportar coleta."
+      error: "Erro ao importar resultados."
 
     });
 

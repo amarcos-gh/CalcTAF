@@ -34,22 +34,17 @@ export default function auth(req, res, next) {
 
   try {
 
-    const usuario =
-      jwt.verify(
-        token,
-        JWT_SECRET
-      );
-
-    req.usuario = usuario;
+    req.usuario =
+      jwt.verify(token, JWT_SECRET);
 
     next();
 
-  } catch (error) {
+  } catch (erro) {
 
-    return res.status(401).json({
-      error: "Token inválido ou expirado."
-    });
+  return res.status(401).json({
+    error: "Token inválido ou expirado."
+  });
 
-  }
+}
 
 }

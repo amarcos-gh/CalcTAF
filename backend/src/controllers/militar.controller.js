@@ -496,75 +496,56 @@ res.json(
   }
 }
 
-export async function listarMilitares(
-  req,
-  res
-) {
+export async function listarMilitares(req, res) {
+
+  console.log("=== listarMilitares ===");
+  console.log("req.query:", req.query);
 
   try {
 
-    const {
+    const { omId } = req.query;
 
-      omId
-
-    } = req.query;
-
-    if (
-
-      !omId
-
-    ) {
-
+    if (!omId) {
+      console.log("OM não informada");
       return res.status(400).json({
-
-        error:
-          "OM não informada."
+        error: "OM não informada."
       });
     }
 
-    const militares =
-      await prisma.militar.findMany({
+    console.log("Consultando OM:", omId);
 
-        where: {
+    const militares = await prisma.militar.findMany({
 
-          omId:
-            Number(
-              omId
-            )
-        },
+      where: {
+        omId: Number(omId)
+      },
 
-        include: {
+      include: {
+        postoGraduacao: true,
+        curso: true,
+        subunidade: true
+      },
 
-          postoGraduacao: true,
+      orderBy: {
+        nomeCompleto: "asc"
+      }
 
-          curso: true,
+    });
 
-          subunidade: true
-        },
+    console.log("Militares encontrados:", militares.length);
 
-        orderBy: {
-
-          nomeCompleto:
-            "asc"
-        }
-      });
-
-    return res.json(
-      militares
-    );
+    return res.json(militares);
 
   } catch (error) {
 
-    console.error(
-      error
-    );
+    console.error("ERRO listarMilitares:", error);
 
     return res.status(500).json({
-
-      error:
-        "Erro ao listar militares."
+      error: error.message
     });
+
   }
+
 }
 
 export async function excluirMilitar(

@@ -1,14 +1,13 @@
 import prisma from "../config/prisma.js";
 
-import { calcularIdade } from "../utils/calcularIdade.js";
+import calcularIdade from "../utils/calcularIdade.js";
 
-//import { calcularMencaoCorrida } from "../services/calcularCorrida.js";
 import calcularMencao from "../services/calcularMencao.js";
 
 import calcularMencaoFinal from "../services/calcularMencaoFinal.js";
 
 export async function criarAvaliacao(req, res) {
-console.log(req.body);
+
   try {
 
     const {
@@ -109,12 +108,13 @@ console.log(req.body);
     });
   }
 
-  const idade = calcularIdade(
+  const idade =
+  calcularIdade(
     militar.dataNascimento
   );
 
   const mencaoCorrida =
-  await calcularMencao({
+    await calcularMencao({
 
   segmento:
     militar.segmento
@@ -215,7 +215,7 @@ console.log(req.body);
 
   let mencaoBarra;
 
-    if (
+  if (
 
     dispensaBarra
 
@@ -225,35 +225,83 @@ console.log(req.body);
 
     mencaoBarra = "NF";
 
-  } else {
+  }
 
-  mencaoBarra =
+  else if (
 
-    await calcularMencao({
+    idade >= 40 &&
 
-      segmento:
+    idade <= 49
 
-        militar.segmento
-          ?.trim()
-          .toUpperCase(),
+  ) {
 
-      cursoCodigo:
+    if (
 
-        militar.curso.codigo
-          ?.trim()
-          .toUpperCase(),
+      barra === "" ||
 
-      exercicio:
+      barra === null ||
 
-        "BARRA",
+      barra === undefined
 
-      idade,
+    ) {
 
-      valor:
+      mencaoBarra = "NR";
 
-        barra
-    });
-}
+    }
+
+    else {
+
+      const suficiencia =
+
+        idade <= 45
+
+          ? 2
+
+          : 1;
+
+      mencaoBarra =
+
+        Number(barra) >= suficiencia
+
+          ? "S"
+
+          : "I";
+
+    }
+
+  }
+
+  else {
+
+    mencaoBarra =
+
+      await calcularMencao({
+
+        segmento:
+
+          militar.segmento
+            ?.trim()
+            .toUpperCase(),
+
+        cursoCodigo:
+
+          militar.curso.codigo
+            ?.trim()
+            .toUpperCase(),
+
+        exercicio:
+
+          "BARRA",
+
+        idade,
+
+        valor:
+
+          barra
+
+      });
+
+  }
 
   let mencaoPPM;
 
@@ -307,6 +355,14 @@ console.log(req.body);
       mencaoBarra
   });
 
+  const considerarBarra =
+
+  !cursoEspecial
+
+  &&
+
+  idade < 40;
+
   const mencaoFinal =
     calcularMencaoFinal({
 
@@ -316,8 +372,15 @@ console.log(req.body);
 
       mencaoAbdominal,
 
-      mencaoBarra
-    });
+      mencaoBarra:
+
+        considerarBarra
+
+          ? mencaoBarra
+
+          : null
+
+  });
 
   if (
 
@@ -383,44 +446,34 @@ console.log(req.body);
     mencaoFinal
   };
 
-  const avaliacaoMesmoTAF =
+  const chamada = await prisma.chamadaTAF.findUnique({
+    where: {
+      id: Number(chamadaId)
+    }
+  });
 
+  if (!chamada) {
+    return res.status(400).json({
+      error: "Chamada TAF inválida."
+    });
+  }
+
+  const avaliacaoMesmoTAF =
     await prisma.avaliacaoTAF.findFirst({
 
-    where: {
+      where: {
 
-      militarId:
+        militarId: Number(militarId),
 
-        Number(
-          militarId
-        ),
+        chamada: {
+          campanhaId: chamada.campanhaId
+        }
 
-      chamada: {
+      },
 
-        campanhaId:
-
-          (
-            await prisma.chamadaTAF.findUnique({
-
-              where: {
-
-                id:
-
-                  Number(
-                    chamadaId
-                  )
-              }
-
-            })
-
-          ).campanhaId
+      include: {
+        chamada: true
       }
-    },
-
-    include: {
-
-      chamada: true
-    }
 
     });
 
@@ -463,26 +516,26 @@ console.log(req.body);
 
   let avaliacao;
 
-  if (avaliacaoExistente) {
+if (avaliacaoExistente) {
 
-    avaliacao =
+  avaliacao =
 
-      await prisma.avaliacaoTAF.update({
+    await prisma.avaliacaoTAF.update({
 
-        where: {
+      where: {
 
-          id:
-            avaliacaoExistente.id
-        },
+        id:
+          avaliacaoExistente.id
+      },
 
-        data:
-          dadosAvaliacao,
+      data:
+        dadosAvaliacao,
 
-        include: {
+      include: {
 
-          militar: {
+        militar: {
 
-            include: {
+          include: {
 
             postoGraduacao: true,
 
@@ -491,20 +544,42 @@ console.log(req.body);
             subunidade: true,
 
             om: true
-            }
-          },
 
-          chamada: {
+          }
+        },
 
-            include: {
+        chamada: {
 
-              campanha: true
-            }
+          include: {
+
+            campanha: true
+
           }
         }
-      });
+      }
+    });
 
-  } else {
+  await prisma.logAvaliacao.create({
+
+    data: {
+
+      avaliacaoId:
+        avaliacao.id,
+
+      usuarioId:
+        req.usuario.usuarioId,
+
+      acao:
+        "ATUALIZACAO",
+
+      origem:
+        "WEB"
+
+    }
+
+  });
+
+} else {
 
   avaliacao =
 
@@ -526,6 +601,7 @@ console.log(req.body);
             subunidade: true,
 
             om: true
+
           }
         },
 
@@ -534,32 +610,55 @@ console.log(req.body);
           include: {
 
             campanha: true
+
           }
         }
       }
     });
+
+  await prisma.logAvaliacao.create({
+
+    data: {
+
+      avaliacaoId:
+        avaliacao.id,
+
+      usuarioId:
+        req.usuario.usuarioId,
+
+      acao:
+        "CADASTRO",
+
+      origem:
+        "WEB"
+
+    }
+
+  });
+
 }
 
-  return res.status(201).json(avaliacao);
+return res.status(201).json(avaliacao);
 
-  } catch (error) {
+} catch (error) {
 
-    console.error(error);
+  console.error(error);
 
-      return res.status(500).json({
+  return res.status(500).json({
 
-        error:
-          error.message
-      });
-    }
+    error:
+      error.message
+
+  });
+
   }
 
-  export async function atualizarAvaliacao(
-  req,
-  res
-  ) {
+}
+
+  export async function atualizarAvaliacao(req, res) {
 
   try {
+    console.log("USUÁRIO:", req.usuario);
 
     const { id } = req.params;
 
@@ -842,17 +941,32 @@ console.log(req.body);
     }
 });
 
-    const mencaoFinal =
-      calcularMencaoFinal({
+    const considerarBarra =
 
-        mencaoCorrida,
+  !cursoEspecial
 
-        mencaoFlexao,
+  &&
 
-        mencaoAbdominal,
+  idade < 40;
 
-        mencaoBarra
-      });
+  const mencaoFinal =
+    calcularMencaoFinal({
+
+      mencaoCorrida,
+
+      mencaoFlexao,
+
+      mencaoAbdominal,
+
+      mencaoBarra:
+
+        considerarBarra
+
+          ? mencaoBarra
+
+          : null
+
+    });
 
     if (
 
@@ -891,61 +1005,77 @@ console.log(req.body);
     }
 
     const avaliacao =
-      await prisma.avaliacaoTAF.update({
+    await prisma.avaliacaoTAF.update({
 
-        where: {
-          id: Number(id)
+      where: {
+        id: Number(id)
+      },
+
+      data: {
+
+        corrida:
+          corridaFinal,
+
+        mencaoCorrida,
+
+        flexao:
+          flexaoFinal,
+
+        mencaoFlexao,
+
+        abdominal:
+          abdominalFinal,
+
+        mencaoAbdominal,
+
+        barra:
+          barraFinal,
+
+        mencaoBarra,
+
+        ppm:
+          ppmFinal,
+
+        mencaoPPM,
+
+        mencaoFinal
+      },
+
+      include: {
+
+        militar: {
+
+          include: {
+
+            curso: true
+          }
         },
 
-        data: {
+        chamada: {
 
-          corrida:
-            corridaFinal,
+          include: {
 
-          mencaoCorrida,
-
-          flexao:
-            flexaoFinal,
-
-          mencaoFlexao,
-
-          abdominal:
-            abdominalFinal,
-
-          mencaoAbdominal,
-
-          barra:
-            barraFinal,
-
-          mencaoBarra,
-
-          ppm:
-            ppmFinal,
-
-          mencaoPPM,
-
-          mencaoFinal
-        },
-
-        include: {
-
-          militar: {
-
-            include: {
-
-              curso: true
-            }
-          },
-
-          chamada: {
-
-            include: {
-
-              campanha: true
-            }
+            campanha: true
           }
         }
-      });
+      }
+    });
+
+    await prisma.logAvaliacao.create({
+
+      data: {
+
+        avaliacaoId: avaliacao.id,
+
+        usuarioId: req.usuario.usuarioId,
+
+        acao: "ATUALIZACAO",
+
+        origem: "WEB"
+
+      }
+
+    });
 
     res.json(avaliacao);
 
@@ -957,14 +1087,14 @@ console.log(req.body);
 
       error:
         "Erro ao atualizar avaliação."
+
     });
-  }
+
   }
 
-  export async function listarAvaliacoes(
-  req,
-  res
-) {
+  }
+
+  export async function listarAvaliacoes(req, res) {
 
   try {
 
@@ -1075,10 +1205,107 @@ console.log(req.body);
   }
 }
 
-export async function limparAvaliacoesDuplicadas(
-  req,
-  res
-) {
+export async function listarLogsAvaliacao(req, res) {
+
+  try {
+
+    const { omId } = req.query;
+
+    const where = {};
+
+    if (omId) {
+
+      where.avaliacao = {
+
+        militar: {
+
+          omId: Number(omId)
+
+        }
+
+      };
+
+    }
+
+    const logs = await prisma.logAvaliacao.findMany({
+
+      where,
+
+      include: {
+
+        usuario: {
+
+          select: {
+
+            id: true,
+
+            nome: true
+
+          }
+
+        },
+
+        avaliacao: {
+
+          include: {
+
+            militar: {
+
+              include: {
+
+                postoGraduacao: true,
+
+                curso: true,
+
+                subunidade: true,
+
+                om: true
+
+              }
+
+            },
+
+            chamada: {
+
+              include: {
+
+                campanha: true
+
+              }
+
+            }
+
+          }
+
+        }
+
+      },
+
+      orderBy: {
+
+        createdAt: "desc"
+
+      }
+
+    });
+
+    return res.json(logs);
+
+  } catch (error) {
+
+    console.error(error);
+
+    return res.status(500).json({
+
+      error: "Erro ao listar histórico."
+
+    });
+
+  }
+
+}
+
+export async function limparAvaliacoesDuplicadas(req, res) {
 
   try {
 
@@ -1208,4 +1435,272 @@ export async function limparAvaliacoesDuplicadas(
         error.message
     });
   }
+}
+
+export async function calcularAvaliacao(req, res) {
+
+  try {
+
+    const {
+
+      militarId,
+      omId,
+      corrida,
+      flexao,
+      abdominal,
+      barra,
+      ppm
+
+    } = req.body;
+
+    const militar = await prisma.militar.findFirst({
+
+      where: {
+
+        id: Number(militarId),
+
+        omId: Number(omId)
+
+      },
+
+      include: {
+
+        curso: true
+
+      }
+
+    });
+
+    if (!militar) {
+
+      return res.status(404).json({
+
+        error: "Militar não encontrado."
+
+      });
+
+    }
+
+    const idade = calcularIdade(
+      militar.dataNascimento
+    );
+
+    const mencaoCorrida =
+      await calcularMencao({
+
+        segmento:
+          militar.segmento
+            ?.trim()
+            .toUpperCase(),
+
+        cursoCodigo:
+          militar.curso.codigo
+            ?.trim()
+            .toUpperCase(),
+
+        exercicio: "CORRIDA",
+
+        idade,
+
+        valor: corrida
+
+      });
+
+    const mencaoFlexao =
+      await calcularMencao({
+
+        segmento:
+          militar.segmento
+            ?.trim()
+            .toUpperCase(),
+
+        cursoCodigo:
+          militar.curso.codigo
+            ?.trim()
+            .toUpperCase(),
+
+        exercicio: "FLEXAO",
+
+        idade,
+
+        valor: flexao
+
+      });
+
+    const mencaoAbdominal =
+      await calcularMencao({
+
+        segmento:
+          militar.segmento
+            ?.trim()
+            .toUpperCase(),
+
+        cursoCodigo:
+          militar.curso.codigo
+            ?.trim()
+            .toUpperCase(),
+
+        exercicio: "ABDOMINAL",
+
+        idade,
+
+        valor: abdominal
+
+      });
+
+    const cursoEspecial =
+
+      ["LEMS", "LEMC", "LEMCT"]
+
+        .includes(
+
+          militar.curso.codigo
+            ?.trim()
+            .toUpperCase()
+
+        );
+
+    const dispensaBarra =
+
+      cursoEspecial ||
+
+      idade >= 50;
+
+    const dispensaPPM =
+
+      cursoEspecial ||
+
+      idade >= 40;
+
+    let mencaoBarra;
+
+      if (cursoEspecial || idade >= 50) {
+
+        mencaoBarra = "NF";
+
+      }
+
+      else if (idade >= 40) {
+
+        if (barra == null || barra === "") {
+
+          mencaoBarra = "NR";
+
+        } else {
+
+          const suficiencia = idade <= 45 ? 2 : 1;
+
+          mencaoBarra =
+
+            Number(barra) >= suficiencia
+
+              ? "S"
+
+              : "I";
+
+        }
+
+      }
+
+      else {
+
+        mencaoBarra = await calcularMencao({
+
+          segmento:
+            militar.segmento
+              ?.trim()
+              .toUpperCase(),
+
+          cursoCodigo:
+            militar.curso.codigo
+              ?.trim()
+              .toUpperCase(),
+
+          exercicio: "BARRA",
+
+          idade,
+
+          valor: barra
+
+        });
+
+      }
+
+    let mencaoPPM;
+
+    if (
+
+      dispensaPPM
+
+    ) {
+
+      mencaoPPM = "NF";
+
+    }
+
+    else {
+
+      mencaoPPM = ppm;
+
+    }
+
+    const considerarBarra =
+
+      !cursoEspecial &&
+
+      idade < 40;
+
+    const mencaoFinal =
+      calcularMencaoFinal({
+
+        mencaoCorrida,
+
+        mencaoFlexao,
+
+        mencaoAbdominal,
+
+        mencaoBarra:
+
+          considerarBarra
+
+            ? mencaoBarra
+
+            : null
+
+      });
+
+    return res.json({
+
+      idade,
+
+      dispensaBarra,
+
+      dispensaPPM,
+
+      mencaoCorrida,
+
+      mencaoFlexao,
+
+      mencaoAbdominal,
+
+      mencaoBarra,
+
+      mencaoPPM,
+
+      mencaoFinal
+
+    });
+
+  } catch (erro) {
+
+    console.error(erro);
+
+    return res.status(500).json({
+
+      error: erro.message
+
+    });
+
+  }
+
 }

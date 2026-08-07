@@ -1,25 +1,81 @@
 import { Router } from "express";
 
+import auth from "../middlewares/auth.middleware.js";
+
 import {
+
   criarAvaliacao,
+
   atualizarAvaliacao,
+
   listarAvaliacoes,
-  limparAvaliacoesDuplicadas
+
+  listarLogsAvaliacao,
+
+  limparAvaliacoesDuplicadas,
+
+  calcularAvaliacao
+
 } from "../controllers/avaliacao.controller.js";
 
 const router = Router();
 
-router.post("/", criarAvaliacao);
+router.post(
 
-router.put("/:id", atualizarAvaliacao);
+  "/calcular",
 
-router.get("/", listarAvaliacoes);
+  calcularAvaliacao
+
+);
+
+router.post(
+
+  "/",
+
+  auth,
+
+  criarAvaliacao
+
+);
+
+router.put(
+
+  "/:id",
+
+  auth,
+
+  atualizarAvaliacao
+
+);
+
+router.get(
+
+  "/",
+
+  auth,
+
+  listarAvaliacoes
+
+);
+
+router.get(
+
+  "/logs",
+
+  auth,
+
+  listarLogsAvaliacao
+
+);
 
 router.delete(
 
-"/duplicadas",
+  "/duplicadas",
 
-limparAvaliacoesDuplicadas
+  auth,
+
+  limparAvaliacoesDuplicadas
+
 );
 
 export default router;

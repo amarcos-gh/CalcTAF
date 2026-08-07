@@ -8,16 +8,38 @@ datasource db {
 }
 
 enum PerfilUsuario {
+  GERAL
   ADMINISTRADOR
   OPERADOR
   AVALIADOR
+}
+enum StatusUsuario {
+  PENDENTE
+  ATIVO
+  BLOQUEADO
+}
+
+enum AcaoLogAvaliacao {
+  CADASTRO
+  ATUALIZACAO
+}
+
+enum OrigemLog {
+  WEB
+  CAMPO
+  IMPORTACAO
 }
 
 model OM {
   id          Int          @id @default(autoincrement())
   sigla       String
-  createdAt   DateTime     @default(now())
   codom       String       @unique
+
+  cidade      String?
+  uf          String?
+
+  createdAt   DateTime     @default(now())
+
   usuarios    Usuario[]
   militares   Militar[]
   subunidades Subunidade[]
@@ -91,7 +113,7 @@ model ChamadaTAF {
   periodoInicio DateTime?
   periodoFim    DateTime?
 
-  codigoCertificacaoHash String?
+  codigoAutenticacaoHash String?
   codigoGeradoEm         DateTime?
 
   avaliadorId Int?
@@ -131,7 +153,10 @@ model AvaliacaoTAF {
   militar Militar    @relation(fields: [militarId], references: [id])
   chamada ChamadaTAF @relation(fields: [chamadaId], references: [id])
 
+  logs LogAvaliacao[]
+
   @@unique([militarId, chamadaId])
+
 }
 
 model IndiceTAF {
@@ -153,12 +178,39 @@ model Usuario {
   email String @unique
   senha String
 
-  perfil PerfilUsuario @default(OPERADOR)
+  perfil PerfilUsuario?
 
   omId Int
-  om   OM  @relation(fields: [omId], references: [id])
+  om   OM @relation(fields: [omId], references: [id])
+
+  subunidade String?
+
+  status StatusUsuario @default(PENDENTE)
 
   createdAt DateTime @default(now())
 
   chamadasGeradas ChamadaTAF[] @relation("AvaliadorChamada")
+
+  logs LogAvaliacao[]
+
+}
+
+model LogAvaliacao {
+
+  id Int @id @default(autoincrement())
+
+  avaliacaoId Int
+
+  usuarioId Int
+
+  acao AcaoLogAvaliacao
+
+  origem OrigemLog @default(WEB)
+
+  createdAt DateTime @default(now())
+
+  avaliacao AvaliacaoTAF @relation(fields: [avaliacaoId], references: [id])
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
 }

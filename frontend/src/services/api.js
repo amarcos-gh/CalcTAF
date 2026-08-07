@@ -40,15 +40,15 @@ api.interceptors.response.use(
 
   (error) => {
 
-    if (
+    if (error.response?.status === 401) {
 
-      error.response?.status === 401
+      console.log("401 recebido");
 
-    ) {
+      console.log(error.response);
 
-      localStorage.clear();
+      // localStorage.clear();
 
-      window.location.href = "/";
+      // window.location.href = "/";
 
     }
 

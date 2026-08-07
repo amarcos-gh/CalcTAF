@@ -34,6 +34,33 @@ export default function MainLayout({
 
   const perfil = localStorage.getItem("perfil");
 
+  const isGeral = perfil === "GERAL";
+
+  const podeMilitares =
+    isGeral ||
+    perfil === "ADMINISTRADOR" ||
+    perfil === "OPERADOR";
+
+  const podeAvaliacoes =
+    isGeral ||
+    perfil === "ADMINISTRADOR" ||
+    perfil === "AVALIADOR";
+
+  const podeColetas =
+    isGeral ||
+    perfil === "ADMINISTRADOR" ||
+    perfil === "AVALIADOR";
+
+  const podeRelatorios =
+    isGeral ||
+    perfil === "ADMINISTRADOR" ||
+    perfil === "OPERADOR" ||
+    perfil === "AVALIADOR";
+
+  const podeConfiguracoes =
+    isGeral ||
+    perfil === "ADMINISTRADOR";
+
   useEffect(() => {
 
     carregarDados();
@@ -157,81 +184,105 @@ return (
       
       <nav className="space-y-2">
 
-        {(perfil === "ADMINISTRADOR" || perfil === "OPERADOR") && (
-          <Link
-            to="/militares"
-            className={`
-              block
-              rounded-xl
-              p-3
-              ${
-                location.pathname === "/militares"
-                  ? "bg-green-800 text-yellow-300 font-bold"
-                  : "hover:bg-green-800"
-              }
-            `}
-          >
-            Militares
-          </Link>
-        )}
+        <Link
+          to={podeMilitares ? "/militares" : "#"}
+          onClick={(e) => {
+            if (!podeMilitares) e.preventDefault();
+          }}
+          className={`
+            block
+            rounded-xl
+            p-3
+            ${!podeMilitares ? "opacity-40 cursor-not-allowed" : ""}
+            ${
+              location.pathname === "/militares"
+                ? "bg-green-800 text-yellow-300 font-bold"
+                : "hover:bg-green-800"
+            }
+          `}
+        >
+          👥 Militares {!podeMilitares && "🔒"}
+        </Link>
 
-        {(perfil === "ADMINISTRADOR" || perfil === "AVALIADOR") && (
-          <Link
-            to="/avaliacoes"
-            className={`
-              block
-              rounded-xl
-              p-3
-              ${
-                location.pathname === "/avaliacoes"
-                  ? "bg-green-800 text-yellow-300 font-bold"
-                  : "hover:bg-green-800"
-              }
-            `}
-          >
-            Avaliações
-          </Link>
-        )}
+        <Link
+          to={podeAvaliacoes ? "/avaliacoes" : "#"}
+          onClick={(e) => {
+            if (!podeAvaliacoes) e.preventDefault();
+          }}
+          className={`
+            block
+            rounded-xl
+            p-3
+            ${!podeAvaliacoes ? "opacity-40 cursor-not-allowed" : ""}
+            ${
+              location.pathname === "/avaliacoes"
+                ? "bg-green-800 text-yellow-300 font-bold"
+                : "hover:bg-green-800"
+            }
+          `}
+        >
+          📝 Avaliações {!podeAvaliacoes && "🔒"}
+        </Link>
 
-        {(perfil === "ADMINISTRADOR" || perfil === "AVALIADOR") && (
-          <button
-            onClick={() => navigate("/coletas")}
-            className={`
-              w-full
-              text-left
-              rounded-xl
-              p-3
-              ${
-                location.pathname === "/coletas"
-                  ? "bg-green-800 text-yellow-300 font-bold"
-                  : "hover:bg-green-800"
-              }
-            `}
-          >
-            Coletas
-          </button>
-        )}
+        <button
+          onClick={() => {
+            if (podeColetas) navigate("/coletas");
+          }}
+          className={`
+            w-full
+            text-left
+            rounded-xl
+            p-3
+            ${!podeColetas ? "opacity-40 cursor-not-allowed" : ""}
+            ${
+              location.pathname === "/coletas"
+                ? "bg-green-800 text-yellow-300 font-bold"
+                : "hover:bg-green-800"
+            }
+          `}
+        >
+          📥 Coletas {!podeColetas && "🔒"}
+        </button>
 
-        {(perfil === "ADMINISTRADOR" ||
-          perfil === "OPERADOR" ||
-          perfil === "AVALIADOR") && (
-          <button
-            onClick={() => navigate("/relatorios")}
-            className={`
-              w-full
-              text-left
-              rounded-xl
-              p-3
-              ${
-                location.pathname === "/relatorios"
-                  ? "bg-green-800 text-yellow-300 font-bold"
-                  : "hover:bg-green-800"
-              }
-            `}
-          >
-            Relatórios
-          </button>
-        )}
+        <button
+          onClick={() => {
+            if (podeRelatorios) navigate("/relatorios");
+          }}
+          className={`
+            w-full
+            text-left
+            rounded-xl
+            p-3
+            ${!podeRelatorios ? "opacity-40 cursor-not-allowed" : ""}
+            ${
+              location.pathname === "/relatorios"
+                ? "bg-green-800 text-yellow-300 font-bold"
+                : "hover:bg-green-800"
+            }
+          `}
+        >
+          📊 Relatórios {!podeRelatorios && "🔒"}
+        </button>        
+        
+        <button
+          onClick={() => {
+            if (podeConfiguracoes) navigate("/configuracoes");
+          }}
+          className={`
+            w-full
+            text-left
+            rounded-xl
+            p-3
+            ${!podeConfiguracoes ? "opacity-40 cursor-not-allowed" : ""}
+            ${
+              location.pathname === "/configuracoes"
+                ? "bg-green-800 text-yellow-300 font-bold"
+                : "hover:bg-green-800"
+            }
+          `}
+        >
+          ⚙️ Configurações {!podeConfiguracoes && "🔒"}
+        </button>
 
         <button
           onClick={() => {

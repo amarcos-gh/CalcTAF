@@ -1,26 +1,34 @@
 const CACHE_NAME = "calctaf-campo-v1";
 
-const urlsToCache = [
+self.addEventListener("fetch", (event) => {
 
-  "/",
+  if (event.request.url.includes(":3000")) {
 
-  "/manifest.webmanifest",
+    return;
 
-  "/icons/icon-192.png",
+  }
 
-  "/icons/icon-512.png"
+  event.respondWith(
 
-];
+    caches.match(event.request)
 
-self.addEventListener("install", (event) => {
+      .then((response) => {
 
-  event.waitUntil(
+        if (response) {
 
-    caches.open(CACHE_NAME).then((cache) => {
+          return response;
 
-      return cache.addAll(urlsToCache);
+        }
 
-    })
+        return fetch(event.request);
+
+      })
+
+      .catch(() => {
+
+        return fetch(event.request);
+
+      })
 
   );
 
@@ -30,9 +38,9 @@ self.addEventListener("activate", (event) => {
 
   event.waitUntil(
 
-    caches.keys().then((cacheNames) => {
+    caches.keys().then((cacheNames) =>
 
-      return Promise.all(
+      Promise.all(
 
         cacheNames.map((cacheName) => {
 
@@ -44,23 +52,9 @@ self.addEventListener("activate", (event) => {
 
         })
 
-      );
+      )
 
-    })
-
-  );
-
-});
-
-self.addEventListener("fetch", (event) => {
-
-  event.respondWith(
-
-    caches.match(event.request).then((response) => {
-
-      return response || fetch(event.request);
-
-    })
+    )
 
   );
 

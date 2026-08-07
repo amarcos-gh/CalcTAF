@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 
 import {
   salvarAvaliacao,
-  obterColeta
+  obterColeta,
+  obterAvaliacao
 } from "../../../database/indexedDB";
 
 import {
@@ -164,6 +165,38 @@ export default function FichaAvaliacao({
     aplicaPPM
 
   ]);
+
+  useEffect(() => {
+
+    async function carregarAvaliacaoSalva() {
+
+      const avaliacao = await obterAvaliacao(militar.id);
+
+      if (!avaliacao) {
+
+        return;
+
+      }
+
+      setForm({
+
+        corrida: avaliacao.corrida ?? "",
+
+        flexao: avaliacao.flexao ?? "",
+
+        abdominal: avaliacao.abdominal ?? "",
+
+        barra: avaliacao.barra ?? "",
+
+        ppm: avaliacao.ppm ?? ""
+
+      });
+
+    }
+
+    carregarAvaliacaoSalva();
+
+  }, [militar.id]);
 
   function alterarCampo(
     campo,

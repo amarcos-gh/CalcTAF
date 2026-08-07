@@ -32,6 +32,8 @@ export default function ImportarColeta({
 
       const dados = JSON.parse(texto);
 
+console.log("ARQUIVO CTAF:", dados);
+
       // =====================================
       // VALIDAÇÕES
       // =====================================
@@ -42,10 +44,10 @@ export default function ImportarColeta({
 
       }
 
-      if (dados.tipo !== "COLETA") {
+      if (dados.tipo !== "CALCTAF_COLETA") {
 
         throw new Error(
-          "O arquivo selecionado não é uma coleta."
+          "O arquivo selecionado não é uma coleta do CalcTAF."
         );
 
       }
@@ -84,22 +86,28 @@ export default function ImportarColeta({
 
       if (
 
-        !dados.avaliador.email ||
-
-        !(
-
-          dados.avaliador.codigoHash ||
-
-          dados.avaliador.senhaHash ||
-
-          dados.avaliador.senha
-
-        )
+        !dados.avaliador.email
 
       ) {
 
         throw new Error(
-          "Credenciais do avaliador inválidas."
+
+          "E-mail do avaliador não encontrado."
+
+        );
+
+      }
+
+      if (
+
+        !dados.chamada?.codigoAutenticacaoHash
+
+      ) {
+
+        throw new Error(
+
+          "Código de autenticação da coleta não encontrado."
+
         );
 
       }

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import * as XLSX from "xlsx";
+
 import api from "../../services/api";
 
 export default function Militares() {
@@ -53,6 +55,8 @@ export default function Militares() {
     subunidade: ""
   });
 
+  const [abaAtiva, setAbaAtiva] = useState("cadastro");
+
   const postosGraduacoes = [
 
     { id: 1, sigla: "Cel" },
@@ -88,36 +92,38 @@ export default function Militares() {
 
     try {
 
-      const response =
+      const response = await api.get(
 
-        await api.get(
+        "/militares",
 
-          "/militares",
+        {
 
-          {
+          params: {
 
-            params: {
+            omId: localStorage.getItem("omId")
 
-              omId:
-
-                localStorage.getItem(
-                  "omId"
-                )
-            }
           }
-        );
 
-      setMilitares(
-        response.data
+        }
+
       );
+
+      setMilitares(response.data);
 
     } catch (error) {
 
-      console.error(
-        error
-      );
+      console.error("=== ERRO MILITARES ===");
+
+      console.error("Status:", error.response?.status);
+
+      console.error("Mensagem:", error.response?.data);
+
+      console.error(error);
+
     }
+
   }
+
   useEffect(() => {
 
     carregarMilitares();
@@ -130,9 +136,8 @@ export default function Militares() {
 
     return () => {
 
-      setManterSubunidade(
-        false
-      );
+      setManterSubunidade(false);
+
     };
 
   }, []);
@@ -141,37 +146,36 @@ export default function Militares() {
 
     try {
 
-      const response =
+      const response = await api.get(
 
-        await api.get(
+        "/subunidades",
 
-          "/subunidades",
+        {
 
-          {
+          params: {
 
-            params: {
+            omId: localStorage.getItem("omId")
 
-              omId:
-
-                localStorage.getItem(
-                  "omId"
-                )
-            }
           }
-        );
 
-      setSubunidades(
+        }
 
-        response.data
       );
+
+      setSubunidades(response.data);
 
     } catch (error) {
 
-      console.error(
+      console.error("=== ERRO SUBUNIDADES ===");
 
-        error
-      );
+      console.error("Status:", error.response?.status);
+
+      console.error("Mensagem:", error.response?.data);
+
+      console.error(error);
+
     }
+
   }
   
   async function cadastrarMilitar(e) {
@@ -299,23 +303,21 @@ export default function Militares() {
                   militarSelecionado.dataNascimento,
 
                 subunidade:
-
-                  subunidadeInput ||
-
-                  militarSelecionado.subunidade?.nome
+                  subunidadeInput.trim()
                 }
             );
 
           setMilitarSelecionado({
-
             ...response.data
           });
+
+          await carregarMilitares();
+
+          setBusca("");
 
           setMensagem(
             "Cadastro atualizado com sucesso."
           );
-
-          await carregarMilitares();
 
           return;
 
@@ -359,7 +361,7 @@ export default function Militares() {
             form.dataNascimento,
 
           subunidade:
-            form.subunidade,
+            subunidadeInput,
 
           omId:
             Number(
@@ -470,14 +472,6 @@ export default function Militares() {
     }
   }
 
-  function converterDataBR(dataBR) {
-
-    const partes =
-      dataBR.split("/");
-
-    return `${partes[2]}-${partes[1]}-${partes[0]}`;
-  }
-
   function formatarDataBR(valor) {
 
     valor =
@@ -496,6 +490,104 @@ export default function Militares() {
       );
 
     return valor;
+  }
+
+  function baixarModeloPlanilha() {
+
+    const workbook = XLSX.utils.book_new();
+
+    /* ABA INSTRUÇÕES */
+
+    const instrucoes = [
+
+      ["MODELO DE IMPORTAÇÃO DE MILITARES"],
+
+      [""],
+
+      ["INSTRUÇÕES"],
+
+      ["1. Não altere os nomes das colunas da aba Militares."],
+
+      ["2. Não exclua colunas."],
+
+      ["3. Preencha uma linha para cada militar."],
+
+      ["4. Nome Completo é obrigatório."],
+
+      ["5. PG deve conter a sigla (Ex.: Cel, Cap, ST, 3º Sgt, Sd EP...)."],
+
+      ["6. Segmento deve ser M ou F."],
+
+      ["7. Curso deve ser LEMB ou LEMS/LEMC/LEMCT."],
+
+      ["8. Data de Nascimento no formato DD/MM/AAAA."],
+
+      ["9. Subunidade deve ser exatamente como utilizada na OM."],
+
+      ["10. Militares existentes serão atualizados pelo Nome Completo."],
+
+      ["11. Novos militares serão cadastrados automaticamente."],
+
+      ["12. Linhas com erro aparecerão na lista de inconsistências."]
+
+    ];
+
+    const wsInstrucoes =
+
+      XLSX.utils.aoa_to_sheet(instrucoes);
+
+    XLSX.utils.book_append_sheet(
+
+      workbook,
+
+      wsInstrucoes,
+
+      "Instruções"
+
+    );
+
+    /* ABA MILITARES */
+
+    const militares = [[
+
+      "Nome Completo",
+
+      "PG",
+
+      "Nome Guerra",
+
+      "Segmento",
+
+      "Curso",
+
+      "Data Nascimento",
+
+      "Subunidade"
+
+    ]];
+
+    const wsMilitares =
+
+      XLSX.utils.aoa_to_sheet(militares);
+
+    XLSX.utils.book_append_sheet(
+
+      workbook,
+
+      wsMilitares,
+
+      "Militares"
+
+    );
+
+    XLSX.writeFile(
+
+      workbook,
+
+      "Modelo_Importacao_Militares.xlsx"
+
+    );
+
   }
 
   const militaresFiltrados =
@@ -598,42 +690,87 @@ async function excluirMilitar() {
 
     <div className="space-y-6">
 
-      {/* CARD CADASTRO */}
+      {/* ABAS */}
 
-      <div className="bg-white rounded-2xl shadow-lg p-6">
+      <div className="bg-white rounded-2xl shadow-lg p-3">
 
-        <h2 className="text-2xl font-bold mb-6">
+        <div className="flex gap-2">
 
-          Cadastro Militar
-
-        </h2>
-
-        {mensagem && (
-
-          <div
-            className="
-              mb-4
-              px-4
+          <button
+            type="button"
+            onClick={() => setAbaAtiva("cadastro")}
+            className={`
+              px-6
               py-3
               rounded-xl
-              bg-slate-100
+              font-semibold
+              transition-all
+              ${
+                abaAtiva === "cadastro"
+                  ? "bg-green-700 text-white"
+                  : "bg-slate-200 text-black hover:bg-slate-300"
+              }
+            `}
+          >
+            Cadastro
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAbaAtiva("importacao")}
+            className={`
+              px-6
+              py-3
+              rounded-xl
+              font-semibold
+              transition-all
+              ${
+                abaAtiva === "importacao"
+                  ? "bg-green-700 text-white"
+                  : "bg-slate-200 text-black hover:bg-slate-300"
+              }
+            `}
+          >
+            Importar Dados
+          </button>
+
+        </div>
+
+      </div>
+
+      {/* ABA CADASTRO */}
+
+      {abaAtiva === "cadastro" && (
+
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+
+          {mensagem && (
+
+            <div
+              className="
+                mb-4
+                px-4
+                py-3
+                rounded-xl
+                bg-slate-100
+              "
+            >
+
+              {mensagem}
+
+            </div>
+
+          )}
+
+          <form
+            onSubmit={cadastrarMilitar}
+            className="
+              grid
+              grid-cols-1
+              md:grid-cols-2
+              gap-4
             "
           >
-
-            {mensagem}
-
-          </div>
-        )}
-
-        <form
-          onSubmit={cadastrarMilitar}
-          className="
-            grid
-            grid-cols-1
-            md:grid-cols-2
-            gap-4
-          "
-        >
 
           {/* NOME COMPLETO */}
 
@@ -667,7 +804,7 @@ async function excluirMilitar() {
             />
 
             {busca.trim() &&
-                militaresFiltrados.length > 0 && (
+              militaresFiltrados.length > 0 && (
 
                 <div
                   className="
@@ -698,55 +835,43 @@ async function excluirMilitar() {
                         militar
                       );
 
-                      setSubunidadeInput(
+                      const nomeSU =
+                        militar.subunidade?.nome ?? "";
 
-                        militar.subunidade?.nome || ""
-                      );
+                      setSubunidadeInput(nomeSU);
 
                       setBusca("");
 
                       setForm({
 
-                        ...form,
+                        id: militar.id,
 
-                        id:
-                          militar.id,
+                        nomeCompleto: militar.nomeCompleto ?? "",
 
-                        nomeCompleto:
-                          militar.nomeCompleto,
-
-                        nomeGuerra:
-                          militar.nomeGuerra || "",
+                        nomeGuerra: militar.nomeGuerra ?? "",
 
                         postoGraduacaoId:
-
-                          militar.postoGraduacaoId || "",
+                          militar.postoGraduacaoId ?? "",
 
                         segmento:
-                          militar.segmento || "",
+                          militar.segmento ?? "",
 
                         cursoId:
-                          militar.cursoId || "",
+                          militar.cursoId ?? "",
 
                         dataNascimento:
-
                           militar.dataNascimento
+                            ? new Date(
+                                militar.dataNascimento
+                              )
+                                .toISOString()
+                                .slice(0,10)
+                                .split("-")
+                                .reverse()
+                                .join("/")
+                            : "",
 
-                            ?
-
-                            new Date(
-                              militar.dataNascimento
-                            ).toLocaleDateString(
-                              "pt-BR"
-                            )
-
-                            :
-
-                            "",
-
-                        subunidade:
-
-                          militar.subunidade?.nome || ""
+                        subunidade: nomeSU
                       });
                     }}
           className="
@@ -973,13 +1098,10 @@ async function excluirMilitar() {
 
       <select
         value={form.cursoId || ""}
-        onChange={(e) =>
+        onChange={(e)=>
           setForm({
-
             ...form,
-
-            cursoId:
-              e.target.value
+            cursoId:e.target.value
           })
         }
         className="
@@ -989,17 +1111,18 @@ async function excluirMilitar() {
         "
       >
 
-        <option value="">
-          Curso
-        </option>
+      <option value="">
+      Curso
+      </option>
 
-        <option value="1">
-          LEMB
+      {cursos.map((curso)=>(
+        <option
+          key={curso.id}
+          value={curso.id}
+        >
+          {curso.codigo}
         </option>
-
-        <option value="2">
-          LEMS/LEMC/LEMCT
-        </option>
+      ))}
 
       </select>
 
@@ -1141,190 +1264,117 @@ async function excluirMilitar() {
 
       <div className="col-span-2 grid grid-cols-[85%_14%] gap-3 mt-4">
 
-  <button
+        <button
 
-    type="submit"
+          type="submit"
 
-    className="
-      bg-green-800
-      hover:bg-green-700
-      text-white
-      font-semibold
-      rounded-xl
-      py-3
-      w-full
-    "
-  >
+          className="
+            bg-green-800
+            hover:bg-green-700
+            text-white
+            font-semibold
+            rounded-xl
+            py-3
+            w-full
+          "
+        >
 
-    Cadastrar Militar
+          Cadastrar Militar
 
-  </button>
+        </button>
 
-  <button
+        <button
 
-    type="button"
+          type="button"
 
-    onClick={excluirMilitar}
+          onClick={excluirMilitar}
 
-    className="
-      bg-red-600
-      hover:bg-red-500
-      text-white
-      font-semibold
-      rounded-xl
-      py-3
-      w-full
-    "
-  >
+          className="
+            bg-red-600
+            hover:bg-red-500
+            text-white
+            font-semibold
+            rounded-xl
+            py-3
+            w-full
+          "
+        >
 
-    Excluir
+          Excluir
 
-  </button>
+        </button>
 
-</div>
+      </div>
 
       </form>
 
       </div>
 
-      {/* CARD MILITAR */}
+      )}
 
-      {militarSelecionado && (
+            {/* ABA IMPORTAR DADOS */}
 
-        <div className="bg-white rounded-2xl shadow-lg p-6">
+      {abaAtiva === "importacao" && (
 
-          <h2 className="text-2xl font-bold mb-6">
+        <div className="space-y-6">
 
-            Militar
+          {/* CARD IMPORTAÇÃO */}
 
-          </h2>
+          <div className="bg-white rounded-2xl shadow-lg p-6">
 
-          <div
-            className="
-              border
-              rounded-2xl
-              p-6
-              space-y-4
-            "
-          >
-
-            <div>
-
-              <p className="text-sm text-slate-500">
-                Nome de Guerra
-              </p>
-
-              <p className="font-bold text-lg">
-
-                {militarSelecionado.postoGraduacao?.abreviacao
-    ?.replace("§", "º")}
-
-                {" "}
-
-                {militarSelecionado.nomeGuerra}
-
-              </p>
-
-            </div>
-
-            <div>
-
-              <p className="text-sm text-slate-500">
-                Nome Completo
-              </p>
-
-              <p className="font-bold">
-
-                {militarSelecionado.nomeCompleto}
-
-              </p>
-
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-6">
 
               <div>
 
-                <p className="text-sm text-slate-500">
-                  Segmento
-                </p>
+                <label className="block font-medium mb-2">
 
-                <p className="font-bold">
+                  Arquivo da Planilha
 
-                  {militarSelecionado.segmento === "M"
-                    ? "MASCULINO"
-                    : "FEMININO"
-                  }
+                </label>
 
-                </p>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="
+                    w-full
+                    border
+                    rounded-xl
+                    p-3
+                  "
+                />
 
               </div>
 
-              <div>
+              <div className="flex gap-3 flex-wrap">
 
-                <p className="text-sm text-slate-500">
-                  Curso
-                </p>
+                <button
+                  type="button"
+                  onClick={baixarModeloPlanilha}
+                  className="
+                    bg-slate-200
+                    hover:bg-slate-300
+                    rounded-xl
+                    px-5
+                    py-3
+                  "
+                >
+                  📄 Baixar Modelo de Planilha
+                </button>
 
-                <p className="font-bold">
-
-                  {militarSelecionado.curso?.codigo ===
-                    "LEMS..."
-
-                      ?
-
-                      "LEMS/LEMC/LEMCT"
-
-                      :
-
-                      militarSelecionado.curso?.codigo || "-"
-                  }
-
-                </p>
-
-              </div>
-
-              <div>
-
-                <p className="text-sm text-slate-500">
-                  Data de Nascimento
-                </p>
-
-                <p className="font-bold">
-
-                  {militarSelecionado
-                    .dataNascimento
-
-                    ?
-
-                    new Date(
-                      militarSelecionado
-                        .dataNascimento
-                    ).toLocaleDateString(
-                      "pt-BR"
-                    )
-
-                    :
-
-                    "-"
-                  }
-
-                </p>
-
-              </div>
-
-              <div>
-
-                <p className="text-sm text-slate-500">
-                  Subunidade
-                </p>
-
-                <p className="font-bold">
-
-                  {militarSelecionado
-                    .subunidade?.nome || "-"}
-
-                </p>
+                <button
+                  type="button"
+                  className="
+                    bg-green-700
+                    hover:bg-green-600
+                    text-white
+                    rounded-xl
+                    px-8
+                    py-3
+                    font-semibold
+                  "
+                >
+                  IMPORTAR
+                </button>
 
               </div>
 
@@ -1332,9 +1382,77 @@ async function excluirMilitar() {
 
           </div>
 
+          {/* RESULTADO */}
+
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+
+            <h3 className="text-lg font-semibold mb-4">
+
+              Resultado da Importação
+
+            </h3>
+
+            <div className="space-y-2">
+
+              <div className="flex justify-between">
+
+                <span>Novos militares</span>
+
+                <strong>0</strong>
+
+              </div>
+
+              <div className="flex justify-between">
+
+                <span>Militares atualizados</span>
+
+                <strong>0</strong>
+
+              </div>
+
+              <div className="flex justify-between">
+
+                <span>Inconsistências</span>
+
+                <strong>0</strong>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* INCONSISTÊNCIAS */}
+
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+
+            <h3 className="text-lg font-semibold mb-4">
+
+              Inconsistências
+
+            </h3>
+
+            <div
+              className="
+                border
+                rounded-xl
+                p-4
+                text-slate-500
+              "
+            >
+
+              Nenhuma inconsistência encontrada.
+
+            </div>
+
+          </div>
+
         </div>
+
       )}
 
     </div>
+
   );
+
 }

@@ -351,7 +351,6 @@ export async function importarColeta(dados) {
     // Índices TAF
     // Compatível com versões antigas
     // =====================================
-
     if (
 
       Array.isArray(dados.indicesTAF)
@@ -1161,6 +1160,22 @@ export async function listarAvaliacoes() {
 
 }
 
+export async function obterAvaliacao(militarId, campanha) {
+
+  const avaliacoes = await listarAvaliacoes();
+
+  return (
+
+    avaliacoes.find(
+
+      a => a.militarId === militarId
+
+    ) || null
+
+  );
+
+}
+
 // ======================================================
 // CONTAR AVALIAÇÕES
 // ======================================================
@@ -1171,21 +1186,35 @@ export async function contarAvaliacoes() {
 
   const avaliacoes = await listarAvaliacoes();
 
+  const totalAvaliados = avaliacoes.filter(
+
+    a => a.status === "AVALIADO"
+
+  ).length;
+
+  const pendentes = avaliacoes.filter(
+
+    a => a.status === "PENDENTE"
+
+  ).length;
+
+  const naoRealizados =
+
+    militares.length -
+
+    totalAvaliados -
+
+    pendentes;
+
   return {
 
-    totalMilitares:
+    totalMilitares: militares.length,
 
-      militares.length,
+    totalAvaliados,
 
-    totalAvaliados:
+    pendentes,
 
-      avaliacoes.length,
-
-    pendentes:
-
-      militares.length -
-
-      avaliacoes.length
+    naoRealizados
 
   };
 

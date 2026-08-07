@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import api from "../../services/api";
 
 import mencaoColor from "../../utils/mencaoColor";
+
+import { processarAvaliacao } from "../../services/calculoTAFWeb";
 
 export default function Avaliacoes() {
 
   const [militares, setMilitares] = useState([]);
 
   const [avaliacoes, setAvaliacoes] = useState([]);
+
+  const [historico, setHistorico] = useState([]);
 
   const [campanhas, setCampanhas] = useState([]);
 
@@ -21,6 +25,22 @@ export default function Avaliacoes() {
   const [militarSelecionado, setMilitarSelecionado] = useState(null);
 
   const [avaliacaoSelecionada, setAvaliacaoSelecionada] = useState(null);
+
+  const [resultadoTempoReal, setResultadoTempoReal] = useState({
+
+    mencaoCorrida: "--",
+
+    mencaoFlexao: "--",
+
+    mencaoAbdominal: "--",
+
+    mencaoBarra: "--",
+
+    mencaoPPM: "--",
+
+    mencaoFinal: "--"
+
+  });
 
   const [manterPeriodo, setManterPeriodo] = useState(false);
 
@@ -42,6 +62,40 @@ export default function Avaliacoes() {
     ppm: ""
   });
 
+  const [abaAtiva, setAbaAtiva] = useState("lancamento");
+
+  useEffect(() => {
+
+    console.log("MENSAGEM =", mensagem);
+
+  }, [mensagem]);
+
+  function mostrarMensagem(texto) {
+
+     console.log("MOSTRAR:", texto);
+
+  setMensagem(texto);
+
+    /*setTimeout(() => {
+
+      setMensagem("");
+
+    }, 3000);*/
+
+  }
+
+  const corridaRef = useRef(null);
+
+  const flexaoRef = useRef(null);
+
+  const abdominalRef = useRef(null);
+
+  const barraRef = useRef(null);
+
+  const ppmRef = useRef(null);
+
+  const salvarRef = useRef(null);
+
   const cursoEspecial =
 
     ["LEMS", "LEMC", "LEMCT"]
@@ -51,25 +105,49 @@ export default function Avaliacoes() {
         militarSelecionado?.curso?.codigo
       );
 
-  const idadeMilitar =
+  let idadeMilitar = 0;
 
-    militarSelecionado
+  if (militarSelecionado) {
 
-      ?
+    const hoje = new Date();
 
-      new Date().getFullYear()
+    const nascimento = new Date(
 
-        -
+      militarSelecionado.dataNascimento
 
-      new Date(
+    );
 
-          militarSelecionado.dataNascimento
+    idadeMilitar =
 
-        ).getFullYear()
+      hoje.getFullYear() -
 
-      :
+      nascimento.getFullYear();
 
-      0;
+    const diferencaMes =
+
+      hoje.getMonth() -
+
+      nascimento.getMonth();
+
+    if (
+
+      diferencaMes < 0 ||
+
+      (
+
+        diferencaMes === 0 &&
+
+        hoje.getDate() < nascimento.getDate()
+
+      )
+
+    ) {
+
+      idadeMilitar--;
+
+    }
+
+  }
 
   const militar50Mais =
 
@@ -77,52 +155,143 @@ export default function Avaliacoes() {
 
   const dispensaBarra =
 
-    cursoEspecial
+  cursoEspecial
 
-    ||
+  ||
 
-    idadeMilitar >= 50;
+  idadeMilitar >= 50;
 
   const dispensaPPM =
 
-    cursoEspecial
+  cursoEspecial
 
-    ||
+  ||
 
-    idadeMilitar >= 40;
+  idadeMilitar >= 40;
+
+    useEffect(() => {
+
+      async function atualizarResultado() {
+
+        if (!militarSelecionado) {
+
+          setResultadoTempoReal({
+
+            mencaoCorrida: "--",
+
+            mencaoFlexao: "--",
+
+            mencaoAbdominal: "--",
+
+            mencaoBarra: "--",
+
+            mencaoPPM: "--",
+
+            mencaoFinal: "--"
+
+          });
+
+          return;
+
+        }
+
+        const resultado = await processarAvaliacao({
+
+          militarId: militarSelecionado.id,
+
+          omId: Number(localStorage.getItem("omId")),
+
+          corrida:
+
+            form.corrida === ""
+
+              ? null
+
+              : Number(form.corrida),
+
+          flexao:
+
+            form.flexao === ""
+
+              ? null
+
+              : Number(form.flexao),
+
+          abdominal:
+
+            form.abdominal === ""
+
+              ? null
+
+              : Number(form.abdominal),
+
+          barra:
+
+            form.barra === ""
+
+              ? null
+
+              : Number(form.barra),
+
+          ppm:
+
+            dispensaPPM
+
+              ? null
+
+              : form.ppm
+
+        });
+
+        setResultadoTempoReal(resultado);
+
+      }
+
+      atualizarResultado();
+
+    }, [
+
+      militarSelecionado,
+
+      idadeMilitar,
+
+      form.corrida,
+
+      form.flexao,
+
+      form.abdominal,
+
+      form.barra,
+
+      form.ppm
+
+    ]);
 
     async function carregarMilitares() {
 
-      try {
+  try {
 
-        const response =
+    const response = await api.get(
 
-          await api.get(
+      "/militares",
 
-            "/militares",
-
-            {
-
-              params: {
-
-                omId:
-
-                  localStorage.getItem(
-                    "omId"
-                  )
-              }
-            }
-          );
-
-        setMilitares(
-          response.data
-        );
-
-      } catch (error) {
-
-        console.error(error);
+      {
+        params: {
+          omId: localStorage.getItem("omId")
+        }
       }
-    }
+
+    );
+
+    setMilitares(response.data);
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+}
 
   async function carregarAvaliacoes() {
 
@@ -230,6 +399,131 @@ setAvaliacoes(
     }
   }
 
+  async function carregarHistorico() {
+
+    try {
+
+      const response = await api.get(
+
+        `/avaliacoes/logs?omId=${
+
+          localStorage.getItem(
+
+            "omId"
+
+          )
+
+        }`
+
+      );
+
+      setHistorico(
+
+        response.data
+
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+    }
+
+  }
+
+  async function selecionarMilitar(militar) {
+
+    setMilitarSelecionado(militar);
+
+    setBuscaMilitar(
+      `${militar.postoGraduacao?.abreviacao || ""} ${militar.nomeGuerra} - ${militar.nomeCompleto}`
+    );
+
+    const avaliacaoExistente = avaliacoes.find((a) => {
+
+      return (
+
+        a.militarId === militar.id &&
+
+        a.chamadaId === Number(form.chamadaId)
+
+      );
+
+    });
+
+    if (avaliacaoExistente) {
+
+      mostrarMensagem("Militar já avaliado nesta chamada.");
+
+      setAvaliacaoSelecionada(avaliacaoExistente);
+
+      setForm((anterior) => ({
+
+        ...anterior,
+
+        militarId: militar.id,
+
+        corrida:
+          avaliacaoExistente.corrida == null
+            ? ""
+            : String(avaliacaoExistente.corrida),
+
+        flexao:
+          avaliacaoExistente.flexao == null
+            ? ""
+            : String(avaliacaoExistente.flexao),
+
+        abdominal:
+          avaliacaoExistente.abdominal == null
+            ? ""
+            : String(avaliacaoExistente.abdominal),
+
+        barra:
+          avaliacaoExistente.barra == null
+            ? ""
+            : String(avaliacaoExistente.barra),
+
+        ppm:
+          avaliacaoExistente.ppm ?? ""
+
+      }));
+
+    }
+
+    else {
+
+      mostrarMensagem("Militar sem avaliação para esta chamada.");
+
+      setAvaliacaoSelecionada(null);
+
+      setForm((anterior) => ({
+
+        ...anterior,
+
+        militarId: militar.id,
+
+        corrida: "",
+
+        flexao: "",
+
+        abdominal: "",
+
+        barra: "",
+
+        ppm: ""
+
+      }));
+
+    }
+
+    setTimeout(() => {
+
+      corridaRef.current?.focus();
+
+    }, 50);
+
+  }
+
   async function carregarCampanhas() {
 
     try {
@@ -247,328 +541,322 @@ setAvaliacoes(
 
   async function cadastrarAvaliacao(e) {
 
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
+    // ===========================================
+    // VALIDAÇÕES
+    // ===========================================
 
-    const response =
+    if (!form.campanhaId) {
 
-      await api.post(
+      mostrarMensagem("Selecione o TAF.");
+
+      return;
+
+    }
+
+    if (!form.chamadaId) {
+
+      mostrarMensagem("Selecione a Chamada.");
+
+      return;
+
+    }
+
+    if (!form.militarId) {
+
+      mostrarMensagem("Selecione um militar.");
+
+      return;
+
+    }
+
+    if (avaliacaoSelecionada) {
+
+      const confirmar = window.confirm(
+
+        "Este militar já possui avaliação nesta chamada.\n\nDeseja atualizá-la?"
+
+      );
+
+      if (!confirmar) {
+
+        return;
+
+      }
+
+      try {
+
+        const response = await api.put(
+
+          `/avaliacoes/${avaliacaoSelecionada.id}`,
+
+          {
+
+            corrida:
+              form.corrida === ""
+                ? null
+                : Number(form.corrida),
+
+            flexao:
+              form.flexao === ""
+                ? null
+                : Number(form.flexao),
+
+            abdominal:
+              form.abdominal === ""
+                ? null
+                : Number(form.abdominal),
+
+            barra:
+              form.barra === ""
+                ? null
+                : Number(form.barra),
+
+            ppm:
+              form.ppm === ""
+                ? null
+                : form.ppm,
+
+            periodoInicio: form.periodoInicio,
+
+            periodoFim: form.periodoFim
+
+          }
+
+        );
+
+        setAvaliacaoSelecionada(response.data);
+
+        await carregarAvaliacoes();
+
+        mostrarMensagem(
+          "Avaliação atualizada com sucesso."
+        );
+
+      } catch (error) {
+
+        console.error(error);
+
+        mostrarMensagem(
+          "Não foi possível salvar a avaliação."
+        );
+
+      }
+
+      return;
+
+    }
+
+    try {
+
+      const response = await api.post(
 
         "/avaliacoes",
 
         {
+            militarId: Number(form.militarId),
 
-          militarId:
+            chamadaId: Number(form.chamadaId),
 
-            Number(
-              form.militarId
-            ),
+            corrida:
+                form.corrida === ""
+                    ? null
+                    : Number(form.corrida),
 
-          chamadaId:
+            flexao:
+                form.flexao === ""
+                    ? null
+                    : Number(form.flexao),
 
-            Number(
-              form.chamadaId
-            ),
+            abdominal:
+                form.abdominal === ""
+                    ? null
+                    : Number(form.abdominal),
 
-          corrida:
+            barra:
+                form.barra === ""
+                    ? null
+                    : Number(form.barra),
 
-            Number(
-              form.corrida
-            ),
+            ppm:
+                form.ppm === ""
+                    ? null
+                    : form.ppm,
 
-          flexao:
+            periodoInicio: form.periodoInicio,
 
-            Number(
-              form.flexao
-            ),
+            periodoFim: form.periodoFim,
 
-          abdominal:
+            omId: Number(localStorage.getItem("omId"))
 
-            Number(
-              form.abdominal
-            ),
-
-          barra:
-
-            Number(
-              form.barra
-            ),
-
-          ppm:
-
-            form.ppm,
-
-          periodoInicio:
-
-            form.periodoInicio,
-
-          periodoFim:
-
-            form.periodoFim,
-
-          omId:
-
-            Number(
-              localStorage.getItem(
-                "omId"
-              )
-            )
         }
-      );
 
-      setMensagem("");
+    );
 
-      setForm({
+setForm({
 
-        militarId: "",
+    militarId: "",
 
-        periodoInicio:
-
-          manterPeriodo
-
+    periodoInicio:
+        manterPeriodo
             ? form.periodoInicio
-
             : "",
 
-        periodoFim:
-
-          manterPeriodo
-
+    periodoFim:
+        manterPeriodo
             ? form.periodoFim
-
             : "",
 
-        campanhaId:
-
-          manterPeriodo
-
+    campanhaId:
+        manterPeriodo
             ? form.campanhaId
-
             : "",
 
-        chamadaId:
-
-          manterPeriodo
-
+    chamadaId:
+        manterPeriodo
             ? form.chamadaId
-
             : "",
 
-        corrida: "",
-        flexao: "",
-        abdominal: "",
-        barra: "",
-        ppm: ""
+    corrida: "",
+
+    flexao: "",
+
+    abdominal: "",
+
+    barra: "",
+
+    ppm: ""
+
+});
+
+setBuscaMilitar("");
+
+setMilitarSelecionado(null);
+
+setAvaliacaoSelecionada(response.data);
+
+await carregarAvaliacoes();
+
+mostrarMensagem("Avaliação cadastrada com sucesso.");
+
+    
+   } catch (error) {
+
+    console.error(error);
+
+    if (error.response?.status === 409) {
+
+      const avaliacaoExistente =
+        error.response.data.avaliacao;
+
+      setAvaliacaoSelecionada({
+
+        ...avaliacaoExistente,
+
+        corrida:
+          form.corrida || avaliacaoExistente.corrida,
+
+        flexao:
+          form.flexao || avaliacaoExistente.flexao,
+
+        abdominal:
+          form.abdominal || avaliacaoExistente.abdominal,
+
+        barra:
+          dispensaBarra
+            ? ""
+            : (form.barra || avaliacaoExistente.barra),
+
+        ppm:
+          dispensaPPM
+            ? ""
+            : (form.ppm || avaliacaoExistente.ppm)
 
       });
 
-      setBuscaMilitar("");
+      try {
 
-      setAvaliacaoSelecionada(response.data);
+        const response = await api.put(
 
-      carregarAvaliacoes();
+          `/avaliacoes/${avaliacaoExistente.id}`,
 
-    } catch (error) {
+          {
 
-      console.error(error);
+            corrida:
+              form.corrida !== ""
+                ? Number(form.corrida)
+                : avaliacaoExistente.corrida,
 
-      if (
-        error.response?.status === 409
-      ) {
+            flexao:
+              form.flexao !== ""
+                ? Number(form.flexao)
+                : avaliacaoExistente.flexao,
 
-        const avaliacaoExistente =
-          error.response.data.avaliacao;
+            abdominal:
+              form.abdominal !== ""
+                ? Number(form.abdominal)
+                : avaliacaoExistente.abdominal,
 
-        setAvaliacaoSelecionada({
+            barra:
+              form.barra !== ""
+                ? Number(form.barra)
+                : avaliacaoExistente.barra,
 
-          ...avaliacaoExistente,
+            ppm:
+              form.ppm !== ""
+                ? form.ppm
+                : avaliacaoExistente.ppm,
 
-          corrida:
+            periodoInicio:
+              form.periodoInicio,
 
-            form.corrida ||
+            periodoFim:
+              form.periodoFim
 
-            avaliacaoExistente.corrida,
+          }
 
-          flexao:
-
-            form.flexao ||
-
-            avaliacaoExistente.flexao,
-
-          abdominal:
-
-            form.abdominal ||
-
-            avaliacaoExistente.abdominal,
-
-          barra:
-
-            dispensaBarra
-
-              ?
-
-              ""
-
-              :
-
-              (
-
-                form.barra ||
-
-                avaliacaoExistente.barra
-              ),
-
-          ppm:
-
-            dispensaPPM
-
-              ?
-
-              ""
-
-              :
-
-              (
-
-                form.ppm ||
-
-                avaliacaoExistente.ppm
-              )
-        });
-
-        const confirmar =
-        window.confirm(
-
-          "Já existe avaliação deste militar nesta chamada.\n\nDeseja atualizar?"
         );
 
-      if (confirmar) {
+        setAvaliacaoSelecionada(response.data);
 
-        try {
+        await carregarAvaliacoes();
 
-          const response =
-          await api.put(
-
-            `/avaliacoes/${avaliacaoExistente.id}`,
-
-            {
-
-              corrida:
-
-                form.corrida !== ""
-
-                  ? Number(form.corrida)
-
-                  : avaliacaoExistente.corrida,
-
-              flexao:
-
-                form.flexao !== ""
-
-                  ? Number(form.flexao)
-
-                  : avaliacaoExistente.flexao,
-
-              abdominal:
-
-                form.abdominal !== ""
-
-                  ? Number(form.abdominal)
-
-                  : avaliacaoExistente.abdominal,
-
-              barra:
-
-                form.barra !== ""
-
-                  ? Number(form.barra)
-
-                  : avaliacaoExistente.barra,
-
-              ppm:
-
-                form.ppm !== ""
-
-                  ? form.ppm
-
-                  : avaliacaoExistente.ppm,
-
-              periodoInicio:
-
-                form.periodoInicio,
-
-              periodoFim:
-
-                form.periodoFim
-
-            }
-          );
-
-          setAvaliacaoSelecionada(
-            response.data
-          );
-
-          setMensagem(
-            "Avaliação atualizada com sucesso."
-          );
-
-        } catch (error) {
-
-          console.error(error);
-
-          setMensagem(
-            "Erro ao atualizar avaliação."
-          );
-        }
-
-      } else {
-
-        setAvaliacaoSelecionada(
-          null
+        mostrarMensagem(
+          "Avaliação atualizada com sucesso."
         );
+
+      } catch (erroAtualizacao) {
+
+        console.error(erroAtualizacao);
+
+        mostrarMensagem(
+          "Não foi possível salvar a avaliação."
+        );
+
       }
 
       return;
+
+    } else {
+
+      mostrarMensagem(
+        "Não foi possível salvar a avaliação."
+      );
+
       }
 
-      if (
+    } // fecha o catch
 
-        error.response?.status === 409
-
-      ) {
-
-        setMensagem(
-
-          "Avaliação já existente para esta chamada."
-        );
-
-      } else if (
-
-        error.response?.data?.error
-
-      ) {
-
-        setMensagem(
-
-          error.response.data.error
-        );
-
-      } else {
-
-        setMensagem(
-
-          "Erro ao lançar avaliação."
-        );
-      }
-    }
-  }
+  } // fecha cadastrarAvaliacao
 
   useEffect(() => {
 
     carregarMilitares();
 
     carregarAvaliacoes();
+
+    carregarHistorico();
 
     carregarCampanhas();
 
@@ -633,904 +921,1009 @@ setAvaliacoes(
       );
     });
 
-      console.log(
-
-        "CAMPANHAS:",
-
-        campanhas
-      );
-
 return (
 
     <div className="space-y-6">
 
-      <div className="bg-white rounded-2xl shadow-lg p-6">
+      {/* ABAS */}
 
-        <div
-  className="
-    grid
-    grid-cols-12
-    gap-4
-    mb-4
-    items-center
-  "
->
+      <div className="bg-white rounded-2xl shadow-lg p-3">
 
-  {/* TÍTULO */}
+        <div className="flex gap-2">
 
-  <div
-    className="
-      col-span-3
-    "
-  >
-
-    <h2
-      className="
-        text-2xl
-        font-bold
-      "
-    >
-
-      Lançamento TAF
-
-    </h2>
-
-  </div>
-
-  {/* PERÍODO */}
-
-  <div
-    className="
-      col-span-9
-      grid
-      grid-cols-12
-      gap-4
-      items-center
-    "
-  >
-
-    <div
-      className="
-        col-span-4
-      "
-    >
-
-      <input
-        type="date"
-
-        value={
-          form.periodoInicio || ""
-        }
-
-        onChange={(e) =>
-
-          setForm({
-
-            ...form,
-
-            periodoInicio:
-              e.target.value
-          })
-        }
-
-        className="
-          border
-          rounded-xl
-          p-3
-          w-full
-        "
-      />
-
-    </div>
-
-    <div
-      className="
-        col-span-4
-      "
-    >
-
-      <input
-        type="date"
-
-        value={
-          form.periodoFim || ""
-        }
-
-        onChange={(e) =>
-
-          setForm({
-
-            ...form,
-
-            periodoFim:
-              e.target.value
-          })
-        }
-
-        className="
-          border
-          rounded-xl
-          p-3
-          w-full
-        "
-      />
-
-    </div>
-
-    <div
-      className="
-        col-span-4
-      "
-    >
-
-      <label
-        className="
-          flex
-          items-center
-          gap-2
-          whitespace-nowrap
-        "
-      >
-
-        <input
-          type="checkbox"
-
-          checked={
-            manterPeriodo
-          }
-
-          onChange={(e) =>
-
-            setManterPeriodo(
-              e.target.checked
-            )
-          }
-        />
-
-        Manter Período após Lançamento
-
-      </label>
-
-    </div>
-
-  </div>
-
-</div>
-
-        {mensagem && (
-
-          <div
-            className="
-              bg-red-100
-              border
-              border-red-400
-              text-red-700
-              px-4
+          <button
+            type="button"
+            onClick={() => setAbaAtiva("lancamento")}
+            className={`
+              px-6
               py-3
               rounded-xl
-              mb-4
-            "
+              font-semibold
+              transition-all
+              ${
+                abaAtiva === "lancamento"
+
+                  ? "bg-green-700 text-white"
+
+                  : "bg-slate-200 text-black hover:bg-slate-300"
+              }
+            `}
           >
+            Lançamento
+          </button>
 
-            {mensagem}
+          <button
+            type="button"
+            onClick={() => setAbaAtiva("historico")}
+            className={`
+              px-6
+              py-3
+              rounded-xl
+              font-semibold
+              transition-all
+              ${
+                abaAtiva === "historico"
 
-          </div>
-        )}
+                  ? "bg-green-700 text-white"
 
-        <form
+                  : "bg-slate-200 text-black hover:bg-slate-300"
+              }
+            `}
+          >
+            Histórico
+          </button>
+
+        </div>
+
+      </div>
+
+      {/* ABA LANÇAMENTO */}
+
+      {abaAtiva === "lancamento" && (
+
+      <form
           onSubmit={cadastrarAvaliacao}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
+          className="space-y-6"
+      >
 
-          <select
-            value={form.campanhaId}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                campanhaId: e.target.value,
-                chamadaId: ""
-              })
-            }
-            className="border rounded-xl p-3"
-            required
-          >
+          {mensagem && (
 
-            <option value="">
-              Selecione o Teste
-            </option>
+            <div
+              className={`rounded-xl border px-4 py-3 font-semibold ${
+                mensagem.toLowerCase().includes("erro")
+                  ? "bg-red-50 border-red-300 text-red-700"
+                  : "bg-green-50 border-green-300 text-green-700"
+              }`}
+            >
+              {mensagem}
+            </div>
 
-            {campanhas.map((teste) => (
+          )}
 
-              <option
-                key={teste.id}
-                value={teste.id}
-              >
+          {/* ============================
+              DADOS DA AVALIAÇÃO
+          ============================ */}
 
-                {teste.numeroTAF}º TAF - {teste.ano}
+          <div className="bg-white rounded-2xl shadow-lg p-6">
 
-              </option>
-            ))}
+              <h2 className="text-xl font-bold text-slate-800 mb-6">
+                  Dados da Avaliação
+              </h2>
 
-          </select>
+              <div className="grid grid-cols-12 gap-5">
 
-          <select
-            value={form.chamadaId}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                chamadaId: e.target.value
-              })
-            }
-            className="border rounded-xl p-3"
-            required
-          >
+                  {/* PERÍODO INICIAL */}
 
-            <option value="">
-              Selecione a Chamada
-            </option>
+                  <div className="col-span-12 md:col-span-3">
 
-            {(campanhas.find(
-              (teste) =>
-                String(teste.id) ===
-                String(form.campanhaId)
-            )?.chamadas || []).map((chamada) => (
+                      <label className="block mb-1 font-medium">
 
-              <option
-                key={chamada.id}
-                value={chamada.id}
-              >
+                          Período Inicial
 
-                {chamada.numeroChamada}ª Chamada
+                      </label>
 
-              </option>
-            ))}
+                      <input
+                          type="date"
+                          value={form.periodoInicio}
+                          onChange={(e)=>
 
-          </select>
+                              setForm({
 
-          <div className="relative">
+                                  ...form,
 
-            <input
-              type="text"
+                                  periodoInicio:e.target.value
 
-              placeholder="Buscar Militar..."
+                              })
 
-              value={buscaMilitar}
+                          }
+                          className="w-full rounded-lg border px-3 py-2"
+                      />
 
-              onChange={(e) => {
+                  </div>
 
-                setMilitarSelecionado(
-                  null
-                );
+                  {/* PERÍODO FINAL */}
 
-                setBuscaMilitar(
-                  e.target.value
-                );
+                  <div className="col-span-12 md:col-span-3">
 
-                setForm({
+                      <label className="block mb-1 font-medium">
 
-                  ...form,
+                          Período Final
 
-                  militarId: ""
-                });
-              }}
+                      </label>
 
-              className="
-                w-full
-                border
-                rounded-xl
-                p-3
-              "
-            />
+                      <input
+                          type="date"
+                          value={form.periodoFim}
+                          onChange={(e)=>
 
-              {
+                              setForm({
 
-                buscaMilitar
+                                  ...form,
 
-                &&
+                                  periodoFim:e.target.value
 
-                !militarSelecionado
+                              })
 
-                &&
+                          }
+                          className="w-full rounded-lg border px-3 py-2"
+                      />
 
-                militaresFiltrados.length > 0
+                  </div>
 
-                && (
+                  {/* TAF */}
 
-                  <div
-                    className="
-                      absolute
-                      top-full
-                      left-0
-                      right-0
-                      mt-1
-                      bg-white
-                      border
-                      rounded-xl
-                      shadow-xl
-                      z-50
-                      max-h-60
-                      overflow-y-auto
-                    "
-                  >
+                  <div className="col-span-12 md:col-span-2">
 
-                    {
+                      <label className="block mb-1 font-medium">
 
-                      militaresFiltrados.map((militar) => (
+                          TAF
 
-                        <button
-                          key={militar.id}
-                          type="button"
-                          onClick={async () => {
+                      </label>
+
+                      <select
+
+                          value={form.campanhaId}
+
+                          onChange={(e)=>
+
+                              setForm({
+
+                                  ...form,
+
+                                  campanhaId:e.target.value
+
+                              })
+
+                          }
+
+                          className="w-full rounded-lg border px-3 py-2"
+
+                      >
+
+                          <option value="">
+                              Selecione
+                          </option>
+
+                          {campanhas.map((campanha) => (
+
+                              <option
+                                  key={campanha.id}
+                                  value={campanha.id}
+                              >
+                                  {campanha.numeroTAF}º TAF ({campanha.ano})
+                              </option>
+
+                          ))}
+
+                      </select>
+
+                  </div>
+
+                  {/* CHAMADA */}
+
+                  <div className="col-span-12 md:col-span-2">
+
+                      <label className="block mb-1 font-medium">
+
+                          Chamada
+
+                      </label>
+
+                      <select
+
+                      value={form.chamadaId}
+
+                      onChange={(e)=>
 
                           setForm({
 
-                            ...form,
+                              ...form,
 
-                            militarId:
-                              militar.id
-                          });
+                              chamadaId: e.target.value
 
-                          setMilitarSelecionado(
+                          })
 
-                            militar
-                          );
+                      }
 
-                          setBuscaMilitar(
+                      className="w-full rounded-lg border px-3 py-2"
 
-                            `${militar.postoGraduacao.abreviacao?.replace("§", "º")} ${militar.nomeGuerra}`
-                          );
+                  >
 
-                            try {
+                      <option value="">
+                          Selecione
+                      </option>
 
-                              const response =
+                      {campanhas
+                        .find(c => c.id === Number(form.campanhaId))
+                        ?.chamadas
+                        ?.map((chamada) => (
 
-                                await api.get(
+                          <option
+                              key={chamada.id}
+                              value={chamada.id}
+                          >
+                              {chamada.numeroChamada}ª Chamada
+                          </option>
 
-                                  `/avaliacoes?omId=${
+                      ))}
 
-                                    localStorage.getItem(
+                  </select>
 
-                                      "omId"
-                                    )
+                  </div>
 
-                                  }`
-                                );
+                  {/* MANTER PERÍODO */}
 
-                              const avaliacaoExistente =
+                  <div className="col-span-12 md:col-span-2 flex items-end">
 
-                                response.data.find((avaliacao) => {
+                      <label className="flex items-center gap-2">
 
-                                  return (
+                          <input
 
-                                    avaliacao.militarId ===
+                              type="checkbox"
 
-                                      militar.id
+                              checked={manterPeriodo}
 
-                                    &&
+                              onChange={(e)=>
 
-                                    avaliacao.chamadaId ===
+                                  setManterPeriodo(
 
-                                      Number(
+                                      e.target.checked
 
-                                        form.chamadaId
-                                      )
-                                  );
-                                });
-
-                              if (
-
-                                avaliacaoExistente
-
-                              ) {
-
-                                setAvaliacaoSelecionada({
-
-                                  ...avaliacaoExistente,
-
-                                  corrida:
-
-                                    form.corrida ||
-
-                                    avaliacaoExistente.corrida,
-
-                                  flexao:
-
-                                    form.flexao ||
-
-                                    avaliacaoExistente.flexao,
-
-                                  abdominal:
-
-                                    form.abdominal ||
-
-                                    avaliacaoExistente.abdominal,
-
-                                  barra:
-
-                                    form.barra ||
-
-                                    avaliacaoExistente.barra,
-
-                                  ppm:
-
-                                    form.ppm ||
-
-                                    avaliacaoExistente.ppm
-                                });
+                                  )
 
                               }
 
-                            } catch (
+                          />
 
-                              error
+                          Manter período
 
-                            ) {
-
-                              console.error(
-
-                                error
-                              );
-                            }
-                          }}
-
-                          className="
-                            w-full
-                            text-left
-                            p-3
-                            hover:bg-slate-100
-                            border-b
-                          "
-                        >
-
-                          <p className="font-bold">
-
-                            {militar.postoGraduacao?.abreviacao?.replaceAll("§", "º")}
-
-                            {" "}
-
-                            {militar.nomeGuerra}
-
-                          </p>
-
-                          <p className="text-sm text-slate-500">
-
-                            {militar.nomeCompleto}
-
-                          </p>
-
-                        </button>
-                      ))
-                    }
+                      </label>
 
                   </div>
-              )
-              }
 
-          </div>
+                  {/* BUSCAR MILITAR */}
 
-          <input
-            type="number"
-            placeholder="Corrida"
-            value={form.corrida}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                corrida: e.target.value
-              })
-            }
-            className="border rounded-xl p-3"
-          />
+                  <div className="col-span-12 relative">
 
-          <input
-            type="number"
-            placeholder="Flexão"
-            value={form.flexao}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                flexao: e.target.value
-              })
-            }
-            className="border rounded-xl p-3"
-          />
+                      <label className="block mb-1 font-medium">
 
-          <input
-            type="number"
-            placeholder="Abdominal"
-            value={form.abdominal}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                abdominal: e.target.value
-              })
-            }
-            className="border rounded-xl p-3"
-          />
+                          Buscar Militar
 
-          <input
-            type="number"
+                      </label>
 
-            placeholder={
+                      <input
 
-              dispensaBarra
+                          type="text"
 
-                ?
+                          value={buscaMilitar}
 
-                "Não se aplica"
+                          onChange={(e)=>{
 
-                :
+                            setBuscaMilitar(
 
-                "Barra"
-            }
+                                e.target.value
 
-            value={
+                            );
 
-              dispensaBarra
+                            setMilitarSelecionado(null);
 
-                ?
+                            setForm({
 
-                ""
+                                militarId: "",
 
-                :
+                                campanhaId: form.campanhaId,
 
-                form.barra
-            }
+                                chamadaId: form.chamadaId,
 
-            disabled={
+                                periodoInicio: form.periodoInicio,
 
-              dispensaBarra
-            }
+                                periodoFim: form.periodoFim,
 
-            onChange={(e) =>
+                                corrida: "",
 
-              setForm({
+                                flexao: "",
 
-                ...form,
+                                abdominal: "",
 
-                barra:
+                                barra: "",
 
-                  e.target.value
-              })
-            }
+                                ppm: ""
 
-            className={`
+                            });
 
-              border
+                            setResultadoTempoReal({
 
-              rounded-xl
+                                mencaoCorrida: "--",
 
-              p-3
+                                mencaoFlexao: "--",
 
-              ${
+                                mencaoAbdominal: "--",
 
-                dispensaBarra
+                                mencaoBarra: "--",
 
-                  ?
+                                mencaoPPM: "--",
 
-                  "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                mencaoFinal: "--"
 
-                  :
+                            });
 
-                  ""
-              }
-            `}
-          />
+                        }}
 
-          <select
+                          placeholder="Nome Completo ou Nome de Guerra"
 
-            value={
+                          className="w-full rounded-lg border px-3 py-2"
 
-              dispensaPPM
+                      />
 
-                ?
+                      {
 
-                ""
+                          buscaMilitar.trim() !== ""
 
-                :
+                          &&
 
-                form.ppm
-            }
+                          militaresFiltrados.length>0
 
-            onChange={(e) =>
+                          &&(
 
-              setForm({
+                              <div className="absolute z-50 mt-1 w-full rounded-lg border bg-white shadow-lg max-h-64 overflow-auto">
 
-                ...form,
+                                  {
 
-                ppm:
+                                      militaresFiltrados.map(
 
-                  e.target.value
-              })
-            }
+                                          militar=>(
 
-            disabled={
+                                          <button
 
-              dispensaPPM
-            }
+                                            key={militar.id}
 
-            className={`
+                                            type="button"
 
-              border
+                                            className="w-full text-left px-3 py-2 hover:bg-green-50"
 
-              rounded-xl
+                                            onClick={() => selecionarMilitar(militar)}
 
-              p-3
+                                          >
 
-              ${
+                                            <strong>
 
-                dispensaPPM
+                                              {militar.nomeGuerra}
 
-                  ?
+                                            </strong>
 
-                  "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                            <br />
 
-                  :
+                                            <small>
 
-                  ""
-              }
-            `}
+                                              {militar.nomeCompleto}
 
-            required={
+                                            </small>
 
-              !dispensaPPM
-            }
-          >
+                                          </button>
 
-            {
+                                          )
 
-              dispensaPPM
+                                      )
 
-                ?
+                                  }
 
-                (
+                              </div>
 
-                  <option value="">
-                    Não se aplica
-                  </option>
+                          )
 
-                )
+                      }
 
-                :
-
-                <>
-
-                  <option value="PPM">
-                    PPM
-                  </option>
-
-                  <option value="A">
-                    APTO
-                  </option>
-
-                  <option value="NA">
-                    NÃO APTO
-                  </option>
-
-                </>
-
-            }
-
-          </select>
-
-          <button
-            type="submit"
-            className="
-              bg-green-800
-              hover:bg-green-900
-              text-white
-              rounded-xl
-              p-3
-              font-bold
-              md:col-span-2
-              w-full
-            "
-          >
-
-            Lançar Avaliação
-
-          </button>
-
-        </form>
-
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-
-        <div className="mb-6">
-
-          <h2 className="text-2xl font-bold mb-4">
-            Avaliações
-          </h2>
-
-        </div>
-
-        <div className="space-y-4">
-
-          {avaliacaoSelecionada && (
-
-            <div
-              className="
-                border
-                rounded-2xl
-                p-6
-                bg-white
-                shadow-sm
-              "
-            >
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                <div>
-
-                  <p className="text-sm text-slate-500">
-                    Nº do Teste
-                  </p>
-
-                  <p className="font-bold text-lg">
-
-                    {avaliacaoSelecionada
-                      ?.chamada
-                      ?.campanha
-                      ?.numeroTAF}º TAF
-
-                  </p>
-
-                </div>
-
-                <div>
-
-                  <p className="text-sm text-slate-500">
-                    Nº da Chamada
-                  </p>
-
-                  <p className="font-bold text-lg">
-
-                    {avaliacaoSelecionada
-                      ?.chamada
-                      ?.numeroChamada}ª Chamada
-
-                  </p>
-
-                </div>
-
-                <div>
-
-                  <p className="text-sm text-slate-500">
-                    Nome de Guerra
-                  </p>
-
-                  <p className="font-bold text-lg">
-
-                    {avaliacaoSelecionada
-                      ?.militar
-                      ?.postoGraduacao
-                      ?.abreviacao}
-
-                    {" "}
-
-                    {avaliacaoSelecionada
-                      ?.militar
-                      ?.nomeGuerra}
-
-                  </p>
-
-                </div>
-
-                <div>
-
-                  <p className="text-sm text-slate-500">
-                    Nome Completo
-                  </p>
-
-                  <p className="font-bold text-lg">
-
-                    {avaliacaoSelecionada
-                      ?.militar
-                      ?.nomeCompleto}
-
-                  </p>
-
-                </div>
-
-                <div>
-
-                  <p className="text-sm text-slate-500">
-                    Corrida
-                  </p>
-
-                  <p className="font-bold text-lg">
-
-                    {avaliacaoSelecionada
-                      ?.corrida}
-
-                  </p>
-
-                </div>
-
-                <div>
-
-                  <p className="text-sm text-slate-500">
-                    Flexão
-                  </p>
-
-                  <p className="font-bold text-lg">
-
-                    {avaliacaoSelecionada
-                      ?.flexao}
-
-                  </p>
-
-                </div>
-
-                <div>
-
-                  <p className="text-sm text-slate-500">
-                    Abdominal
-                  </p>
-
-                  <p className="font-bold text-lg">
-
-                    {avaliacaoSelecionada
-                      ?.abdominal}
-
-                  </p>
-
-                </div>
-
-                <div>
-
-                  <p className="text-sm text-slate-500">
-                    Barra
-                  </p>
-
-                  <p className="font-bold text-lg">
-
-                    {avaliacaoSelecionada
-                      ?.barra}
-
-                  </p>
-
-                </div>
-
-                <div>
-
-                  <p className="text-sm text-slate-500">
-                    PPM
-                  </p>
-
-                  <p className="font-bold text-lg">
-
-                    {avaliacaoSelecionada
-                      ?.ppm}
-
-                  </p>
-
-                </div>
-
-                <div>
-
-                  <p className="text-sm text-slate-500">
-                    Menção Final
-                  </p>
-
-                  <p className="font-bold text-lg">
-
-                    {avaliacaoSelecionada
-                      ?.mencaoFinal || "NR"}
-
-                  </p>
-
-                </div>
+                  </div>
 
               </div>
 
-            </div>
-          )}
+          </div>
 
-        </div>
+        {/* ============================
+              ÍNDICES + RESULTADO
+          ============================ */}
 
-      </div>
+          <div className="grid grid-cols-12 gap-6">
+
+              {/* ============================
+                  ÍNDICES
+              ============================ */}
+
+              <div className="col-span-12 lg:col-span-8">
+
+                  <div className="bg-white rounded-2xl shadow-lg p-6">
+
+                      <h2 className="text-xl font-bold text-slate-800 mb-6">
+
+                          Índices
+
+                      </h2>
+
+                      <div className="grid grid-cols-12 gap-5">
+
+                          {/* CORRIDA */}
+
+                          <div className="col-span-12 md:col-span-6">
+
+                              <label className="block mb-1 font-medium">
+
+                                  Corrida (m)
+
+                              </label>
+
+                              <input
+                                ref={corridaRef}
+
+                                type="number"
+
+                                min="0"
+
+                                step="1"
+
+                                inputMode="numeric"
+
+                                disabled={!militarSelecionado}
+
+                                value={form.corrida}
+
+                                onChange={(e)=>{
+
+                                    const valor = e.target.value;
+
+                                    if (/^\d*$/.test(valor)) {
+
+                                        setForm({
+
+                                            ...form,
+
+                                            corrida: valor
+
+                                        });
+
+                                    }
+
+                                }}
+
+                                className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-100"
+                            />
+
+                          </div>
+
+                          {/* FLEXÃO */}
+
+                          <div className="col-span-12 md:col-span-6">
+
+                              <label className="block mb-1 font-medium">
+
+                                  Flexão
+
+                              </label>
+
+                              <input
+                                type="number"
+
+                                min="0"
+
+                                step="1"
+
+                                inputMode="numeric"
+
+                                disabled={!militarSelecionado}
+
+                                value={form.flexao}
+
+                                onChange={(e)=>{
+
+                                    const valor = e.target.value;
+
+                                    if (/^\d*$/.test(valor)) {
+
+                                        setForm({
+
+                                            ...form,
+
+                                            flexao: valor
+
+                                        });
+
+                                    }
+
+                                }}
+
+                                className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-100"
+                            />
+
+                          </div>
+
+                          {/* ABDOMINAL */}
+
+                          <div className="col-span-12 md:col-span-6">
+
+                              <label className="block mb-1 font-medium">
+
+                                  Abdominal
+
+                              </label>
+
+                              <input
+                                type="number"
+
+                                min="0"
+
+                                step="1"
+
+                                inputMode="numeric"
+
+                                disabled={!militarSelecionado}
+
+                                value={form.abdominal}
+
+                                onChange={(e)=>{
+
+                                    const valor = e.target.value;
+
+                                    if (/^\d*$/.test(valor)) {
+
+                                        setForm({
+
+                                            ...form,
+
+                                            abdominal: valor
+
+                                        });
+
+                                    }
+
+                                }}
+
+                                className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-100"
+                            />
+
+                          </div>
+
+                          {/* BARRA */}
+
+                          <div className="col-span-12 md:col-span-6">
+
+                              <label className="block mb-1 font-medium">
+
+                                  Barra
+
+                              </label>
+
+                              <input
+                                type="number"
+
+                                min="0"
+
+                                step="1"
+
+                                inputMode="numeric"
+
+                                disabled={
+
+                                    !militarSelecionado ||
+
+                                    dispensaBarra
+
+                                }
+
+                                value={form.barra}
+
+                                onChange={(e)=>{
+
+                                    const valor = e.target.value;
+
+                                    if (/^\d*$/.test(valor)) {
+
+                                        setForm({
+
+                                            ...form,
+
+                                            barra: valor
+
+                                        });
+
+                                    }
+
+                                }}
+
+                                className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-100"
+                            />
+
+                          </div>
+
+                          {/* PPM */}
+
+                          <div className="col-span-12 md:col-span-6">
+
+                              <label className="block mb-1 font-medium">
+
+                                  PPM
+
+                              </label>
+
+                              <select
+
+      disabled={
+
+          buscaMilitar.trim() === "" ||
+
+          dispensaPPM
+
+      }
+
+      value={form.ppm}
+
+      onChange={(e)=>
+
+          setForm({
+
+            ...form,
+
+            ppm: e.target.value
+
+        })
+
+    }
+
+    className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-100"
+
+  >
+
+    <option value="">Selecione</option>
+
+    <option value="A">Apto</option>
+
+    <option value="NA">Inapto</option>
+
+  </select>
+
+                          </div>
+
+                      </div>
+
+                      <div className="flex justify-end mt-8">
+
+                          <button
+                              type="submit"
+                              className="bg-green-700 hover:bg-green-800 text-white font-semibold px-8 py-3 rounded-xl transition"
+                          >
+
+                              Salvar Avaliação
+
+                          </button>
+
+                      </div>
+
+                  </div>
+
+              </div>
+
+              {/* ============================
+                  RESULTADO AUTOMÁTICO
+              ============================ */}
+
+              <div className="col-span-12 lg:col-span-4">
+
+                  <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-4">
+
+                      <h2 className="text-xl font-bold text-slate-800 mb-6">
+
+                          Menções
+
+                      </h2>
+
+                      <div className="space-y-3">
+
+                          <div className="flex justify-between">
+
+                              <span>Corrida</span>
+
+                              <strong className={mencaoColor(resultadoTempoReal.mencaoCorrida)}>
+
+                                  {resultadoTempoReal.mencaoCorrida || "--"}
+
+                              </strong>
+
+                          </div>
+
+                          <div className="flex justify-between">
+
+                              <span>Flexão</span>
+
+                              <strong className={mencaoColor(resultadoTempoReal.mencaoFlexao)}>
+
+                                  {resultadoTempoReal.mencaoFlexao || "--"}
+
+                              </strong>
+
+                          </div>
+
+                          <div className="flex justify-between">
+
+                              <span>Abdominal</span>
+
+                              <strong className={mencaoColor(resultadoTempoReal.mencaoAbdominal)}>
+
+                                  {resultadoTempoReal.mencaoAbdominal || "--"}
+
+                              </strong>
+
+                          </div>
+
+                          <div className="flex justify-between">
+
+                              <span>Barra</span>
+
+                              <strong className={mencaoColor(resultadoTempoReal.mencaoBarra)}>
+
+                                  {resultadoTempoReal.mencaoBarra || "--"}
+
+                              </strong>
+
+                          </div>
+
+                          <div className="flex justify-between">
+
+                            <span>PPM</span>
+
+                            <strong className={mencaoColor(resultadoTempoReal.mencaoPPM)}>
+
+                                {
+
+                                    resultadoTempoReal.mencaoPPM === ""
+
+                                    ||
+
+                                    resultadoTempoReal.mencaoPPM == null
+
+                                        ? "NR"
+
+                                        : resultadoTempoReal.mencaoPPM
+
+                                }
+
+                            </strong>
+
+                        </div>
+
+                          <hr className="my-5"/>
+
+                          <div className="text-center">
+
+                              <div className="text-sm text-gray-500">
+
+                                  MENÇÃO FINAL
+
+                              </div>
+
+                              <div
+                                  className={`text-5xl font-bold mt-2 ${mencaoColor(resultadoTempoReal.mencaoFinal)}`}
+                              >
+
+                                  {resultadoTempoReal.mencaoFinal || "--"}
+
+                              </div>
+
+                          </div>
+
+                      </div>
+
+                  </div>
+
+              </div>
+
+          </div>
+
+        </form>
+
+      )}
+
+      {/* ============================
+          ABA HISTÓRICO
+      ============================ */}
+
+      {abaAtiva === "historico" && (
+
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+
+              <div className="flex justify-between items-center mb-6">
+
+                  <h2 className="text-xl font-bold text-slate-800">
+
+                      Histórico das Avaliações
+
+                  </h2>
+
+                  <input
+                      type="text"
+                      placeholder="Pesquisar militar..."
+                      value={busca}
+                      onChange={(e)=>setBusca(e.target.value)}
+                      className="border rounded-lg px-3 py-2 w-72"
+                  />
+
+              </div>
+
+              <div className="overflow-x-auto">
+
+                  <table className="w-full">
+
+                      <thead>
+
+                          <tr className="bg-green-700 text-white">
+
+                              <th className="text-left p-3">
+
+                                  Ação
+
+                              </th>
+
+                              <th className="text-left p-3">
+
+                                  Militar
+
+                              </th>
+
+                              <th className="text-left p-3">
+
+                                  Data/Hora
+
+                              </th>
+
+                              <th className="text-left p-3">
+
+                                  Usuário
+
+                              </th>
+
+                          </tr>
+
+                      </thead>
+
+                      <tbody>
+
+                        {
+
+                          historico.length === 0 && (
+
+                            <tr>
+
+                              <td
+                                colSpan="4"
+                                className="text-center py-10 text-gray-500"
+                              >
+
+                                Nenhum registro encontrado.
+
+                              </td>
+
+                            </tr>
+
+                          )
+
+                        }
+
+                        {
+
+                          historico
+
+                            .filter((log) =>
+
+                              !busca ||
+
+                              log.avaliacao?.militar?.nomeGuerra
+
+                                ?.toLowerCase()
+
+                                .includes(
+
+                                  busca.toLowerCase()
+
+                                )
+
+                            )
+
+                            .map((log) => (
+
+                              <tr
+
+                                key={log.id}
+
+                                className="border-b hover:bg-gray-50"
+
+                              >
+
+                                <td className="p-3">
+
+                                  {
+
+                                    log.acao === "CADASTRO"
+
+                                      ? "Cadastro"
+
+                                      : "Atualização"
+
+                                  }
+
+                                </td>
+
+                                <td className="p-3">
+
+                                  {
+
+                                    log.avaliacao?.militar?.nomeGuerra
+
+                                  }
+
+                                </td>
+
+                                <td className="p-3">
+
+                                  {
+
+                                    new Date(
+
+                                      log.createdAt
+
+                                    ).toLocaleString(
+
+                                      "pt-BR"
+
+                                    )
+
+                                  }
+
+                                </td>
+
+                                <td className="p-3">
+
+                                  {
+
+                                    log.usuario?.nome ?? "-"
+
+                                  }
+
+                                </td>
+
+                              </tr>
+
+                            ))
+
+                        }
+
+                      </tbody>
+
+                  </table>
+
+              </div>
+
+          </div>
+
+        )}
 
     </div>
-  );
-}
+
+    );
+  }

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+
 import { useLocation } from "react-router-dom";
+
 import api from "../../services/api";
+
+import ModalCodigoColeta from "./components/ModalCodigoColeta";
 
 export default function Coletas() {
 
@@ -14,7 +18,13 @@ export default function Coletas() {
 
   const [numeroChamada, setNumeroChamada] = useState(1);
 
+  const [subunidades, setSubunidades] = useState([]);
+
+  const [subunidadeSelecionada, setSubunidadeSelecionada] = useState("");
+
   const [pesquisa, setPesquisa] = useState("");
+
+  const [filtroSelecao, setFiltroSelecao] = useState("");
 
   const [militares, setMilitares] = useState([]);
 
@@ -26,6 +36,10 @@ export default function Coletas() {
 
   const [carregando, setCarregando] = useState(false);
 
+  const [modalCodigoAberto, setModalCodigoAberto] = useState(false);
+
+  const [codigoAutenticacao, setCodigoAutenticacao] = useState("");
+
   // futuramente virá do login
   const omId = Number(localStorage.getItem("omId")) || 1;
 
@@ -33,7 +47,21 @@ export default function Coletas() {
 
     carregarMilitares();
 
-  }, [numeroTAF, numeroChamada]);
+  }, [
+
+    numeroTAF,
+
+    numeroChamada,
+
+    subunidadeSelecionada
+
+  ]);
+
+  useEffect(() => {
+
+    carregarSubunidades();
+
+  }, [omId]);
 
   async function carregarMilitares() {
 
@@ -50,6 +78,8 @@ export default function Coletas() {
           numeroTAF,
 
           numeroChamada,
+
+          subunidadeId: subunidadeSelecionada,
 
           busca: pesquisa
 
@@ -97,6 +127,102 @@ export default function Coletas() {
 
   }, [pesquisa]);
 
+  // =====================================================
+  // FILTRO DE SELEÇÃO
+  // =====================================================
+
+  useEffect(() => {
+
+    if (!militares.length) {
+
+      setSelecionados([]);
+
+      return;
+
+    }
+
+    switch (filtroSelecao) {
+
+      case "TODOS":
+
+        setSelecionados(
+
+          militares.map(
+
+            militar => militar.id
+
+          )
+
+        );
+
+        break;
+
+      case "PENDENTES":
+
+        setSelecionados(
+
+          militares
+
+            .filter((militar) =>
+
+              militar.mencaoFinal === "NR"
+
+            )
+
+            .map(
+
+              militar => militar.id
+
+            )
+
+        );
+
+        break;
+
+            default:
+
+              setSelecionados([]);
+
+              break;
+
+    }
+
+  }, [
+
+    filtroSelecao,
+
+    militares
+
+  ]);
+
+  async function carregarSubunidades() {
+
+    try {
+
+      const { data } = await api.get("/subunidades", {
+
+        params: {
+
+          omId
+
+        }
+
+      });
+
+      setSubunidades(data);
+
+    }
+
+    catch (erro) {
+
+      console.error(erro);
+
+      alert("Erro ao carregar Subunidades.");
+
+    }
+
+  }
+
   function selecionar(id) {
 
     if (selecionados.includes(id)) {
@@ -125,33 +251,7 @@ export default function Coletas() {
 
     }
 
-  }
-
-  function selecionarTodos() {
-
-    if (
-
-      selecionados.length === militares.length
-
-    ) {
-
-      setSelecionados([]);
-
-      return;
-
-    }
-
-    setSelecionados(
-
-      militares.map(
-
-        militar => militar.id
-
-      )
-
-    );
-
-  }
+  }  
 
   const militaresFiltrados = useMemo(() => {
 
@@ -233,7 +333,7 @@ export default function Coletas() {
 
         <div className="bg-white rounded-xl shadow p-6">
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
 
             <div>
 
@@ -274,6 +374,54 @@ export default function Coletas() {
 
             </div>
 
+            <div>
+
+  <label className="block font-semibold mb-1">
+
+    Subunidade
+
+  </label>
+
+  <select
+
+    className="w-full border rounded-lg p-2"
+
+    value={subunidadeSelecionada}
+
+    onChange={(e) =>
+
+      setSubunidadeSelecionada(e.target.value)
+
+    }
+
+  >
+
+    <option value="">
+
+      Todas
+
+    </option>
+
+    {subunidades.map((sub) => (
+
+      <option
+
+        key={sub.id}
+
+        value={sub.id}
+
+      >
+
+        {sub.nome}
+
+      </option>
+
+    ))}
+
+  </select>
+
+</div>
+
             <div className="md:col-span-2">
 
               <label className="block font-semibold mb-1">
@@ -293,7 +441,47 @@ export default function Coletas() {
 
           </div>
 
-          <div className="flex justify-between items-center mt-6">
+          
+
+          <div className="mt-5 grid grid-cols-4 gap-3">
+
+            <label className="flex items-center gap-2 cursor-pointer col-span-2">
+
+              <input
+                type="radio"
+                name="filtroSelecao"
+                checked={filtroSelecao === "TODOS"}
+                onChange={() => setFiltroSelecao("TODOS")}
+              />
+
+              <span>
+
+                Todos os militares
+
+              </span>
+
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer col-span-2">
+
+              <input
+                type="radio"
+                name="filtroSelecao"
+                checked={filtroSelecao === "PENDENTES"}
+                onChange={() => setFiltroSelecao("PENDENTES")}
+              />
+
+              <span>
+
+                Pendentes / Não Realizados
+
+              </span>
+
+            </label>
+
+          </div>
+
+          <div className="flex justify-between items-center mt-4">
 
             <div className="text-sm">
 
@@ -308,17 +496,6 @@ export default function Coletas() {
               <strong>Selecionados:</strong> {selecionados.length}
 
             </div>
-
-            <button
-              type="button"
-              onClick={selecionarTodos}
-              className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg"
-            >
-              {selecionados.length === militares.length &&
-              militares.length > 0
-                ? "Desmarcar Todos"
-                : "Selecionar Todos"}
-            </button>
 
           </div>
 
@@ -458,22 +635,24 @@ export default function Coletas() {
             <button
               type="button"
               disabled={
-                selecionados.length === 0 ||
-                carregando
+                carregando ||
+                selecionados.length === 0
               }
               onClick={gerarColeta}
-              className="
-                bg-green-700
-                hover:bg-green-800
-                disabled:bg-gray-400
-                disabled:cursor-not-allowed
+              className={`
                 text-white
                 px-8
                 py-3
                 rounded-xl
                 font-semibold
                 shadow
-              "
+                transition
+                ${
+                  carregando || selecionados.length === 0
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-green-700 hover:bg-green-800"
+                }
+              `}
             >
               📥 Gerar Coleta (.ctaf)
             </button>
@@ -537,6 +716,22 @@ export default function Coletas() {
 
       )}
 
+      <ModalCodigoColeta
+
+        aberto={modalCodigoAberto}
+
+        codigo={codigoAutenticacao}
+
+        onFechar={() => {
+
+          setModalCodigoAberto(false);
+
+          setCodigoAutenticacao("");
+
+        }}
+
+      />
+
     </div>
 
   );
@@ -553,23 +748,27 @@ export default function Coletas() {
 
       const { data } = await api.get(
 
-        "/coleta/exportar",
+      "/coleta/exportar",
 
-        {
+      {
 
-          params: {
+        params: {
 
-            omId,
+          omId,
 
-            numeroTAF,
+          numeroTAF,
 
-            numeroChamada
+          numeroChamada,
 
-          }
+          subunidadeId: subunidadeSelecionada,
+
+          militares: selecionados.join(",")
 
         }
 
-      );
+      }
+
+    );
 
       const blob = new Blob(
 
@@ -577,7 +776,7 @@ export default function Coletas() {
 
           JSON.stringify(
 
-            data,
+            data.coleta,
 
             null,
 
@@ -612,7 +811,13 @@ export default function Coletas() {
 
       window.URL.revokeObjectURL(url);
 
-      alert("Coleta exportada com sucesso.");
+      setCodigoAutenticacao(
+
+        data.codigoAutenticacao
+
+      );
+
+      setModalCodigoAberto(true);
 
     }
 
@@ -642,11 +847,93 @@ export default function Coletas() {
 
       const arquivo = event.target.files?.[0];
 
-      if (!arquivo) return;
+      if (!arquivo) {
+
+        return;
+
+      }
+
+      // ==========================================
+      // VALIDA EXTENSÃO
+      // ==========================================
+
+      if (
+
+        !arquivo.name.toLowerCase().endsWith(".ctaf")
+
+      ) {
+
+        throw new Error(
+
+          "Selecione um arquivo .ctaf."
+
+        );
+
+      }
 
       const texto = await arquivo.text();
 
       const dados = JSON.parse(texto);
+
+      // ==========================================
+      // VALIDA TIPO
+      // ==========================================
+
+      if (
+
+        dados.tipo !== "RESULTADO_AVALIACAO"
+
+      ) {
+
+        throw new Error(
+
+          "O arquivo selecionado não é um Resultado de Avaliação."
+
+        );
+
+      }
+
+      // ==========================================
+      // VALIDA VERSÃO
+      // ==========================================
+
+      if (
+
+        dados.versao !== "1.0"
+
+      ) {
+
+        throw new Error(
+
+          "Versão do arquivo incompatível."
+
+        );
+
+      }
+
+      // ==========================================
+      // VALIDA AVALIAÇÕES
+      // ==========================================
+
+      if (
+
+        !Array.isArray(dados.avaliacoes) ||
+
+        dados.avaliacoes.length === 0
+
+      ) {
+
+        throw new Error(
+
+          "O arquivo não possui avaliações."
+
+        );
+
+      }
+
+      // ==========================================
+      // ENVIA AO BACKEND
+      // ==========================================
 
       await api.post(
 
@@ -656,7 +943,11 @@ export default function Coletas() {
 
       );
 
-      alert("Avaliações importadas com sucesso.");
+      alert(
+
+        `${dados.avaliacoes.length} avaliações importadas com sucesso.`
+
+      );
 
       event.target.value = "";
 
@@ -671,6 +962,8 @@ export default function Coletas() {
       alert(
 
         erro.response?.data?.error ||
+
+        erro.message ||
 
         "Erro ao importar avaliações."
 

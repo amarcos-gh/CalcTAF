@@ -461,28 +461,18 @@ export default function Relatorios() {
 
     function formatarData(data) {
 
-      if (
-
-        !data
-
-      ) {
+      if (!data) {
 
         return "";
+
       }
 
-      return (
+      const [ano, mes, dia] = data
+        .substring(0, 10)
+        .split("-");
 
-        new Date(
+      return `${dia}/${mes}/${ano}`;
 
-          data
-
-        )
-
-          .toLocaleDateString(
-
-            "pt-BR"
-          )
-      );
     }
 
     console.log(

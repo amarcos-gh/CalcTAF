@@ -2,6 +2,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useNavigate } from "react-router-dom";
 
+import {
+
+  obterColeta,
+
+  listarMilitares,
+
+  listarAvaliacoes,
+
+  contarAvaliacoes
+
+} from "../../database/indexedDB";
+
+import { STATUS_AVALIACAO } from "../../services/calculoTAF";
+
 import CabecalhoColeta from "./components/CabecalhoColeta";
 
 import FichaAvaliacao from "./components/FichaAvaliacao";
@@ -84,7 +98,7 @@ export default function AplicacaoColeta() {
 
     console.error(erro);
 
-    navigate("/coleta/importar");
+    navigate("/coleta/login");
 
   }
 
@@ -110,11 +124,21 @@ export default function AplicacaoColeta() {
 
     return new Set(
 
-      avaliacoes.map(
+      avaliacoes
 
-        (avaliacao) => avaliacao.militarId
+        .filter(
 
-      )
+          (avaliacao) =>
+
+            avaliacao.status === STATUS_AVALIACAO.AVALIADO
+
+        )
+
+        .map(
+
+          (avaliacao) => avaliacao.militarId
+
+        )
 
     );
 
@@ -276,6 +300,24 @@ export default function AplicacaoColeta() {
 
   }
 
+  function sairAplicacao() {
+
+    const confirmar = window.confirm(
+
+      "Deseja encerrar esta sessão de avaliação?"
+
+    );
+
+    if (!confirmar) {
+
+      return;
+
+    }
+
+    navigate("/coleta/login");
+
+  }
+
   // ======================================================
   // AGUARDANDO CARREGAMENTO
   // ======================================================
@@ -308,7 +350,7 @@ export default function AplicacaoColeta() {
 
   if (!coleta) {
 
-    navigate("/coleta/importar");
+    navigate("/coleta/login");
 
     return null;
 
@@ -352,7 +394,7 @@ export default function AplicacaoColeta() {
 
         </div>
 
-      </div>
+    </div>
 
     );
 
@@ -386,117 +428,62 @@ export default function AplicacaoColeta() {
 
           <div className="rounded-xl bg-green-50 border border-green-300 p-4 space-y-2">
 
-            <p className="font-bold text-green-800 text-lg">
-
-              {coleta.om?.sigla}
-
-            </p>
-
             <p className="text-sm">
 
-              CODOM: {coleta.om?.codom}
-
-            </p>
-
-            <p className="text-sm">
-
-              {coleta.campanha?.numeroTAF}º TAF • {coleta.campanha?.numeroChamada}ª Chamada
+              {coleta.campanha?.numeroTAF}º TAF • {coleta.chamada?.numeroChamada}ª Chamada
 
             </p>
 
             <div className="mt-4">
 
-              <div className="flex justify-between text-sm font-semibold">
-
-                <span>Progresso</span>
-
-                <span>{progresso}%</span>
-
-              </div>
-
-              <div className="w-full h-3 rounded-full bg-gray-200 overflow-hidden mt-1">
-
-                <div
-
-                  className="h-full bg-green-700 transition-all"
-
-                  style={{ width: `${progresso}%` }}
-
-                />
-
-              </div>
-
             </div>
 
-            <div className="grid grid-cols-3 gap-2 pt-2 text-center">
+            <div className="grid grid-cols-2 gap-2 mt-2">
 
-              <div className="rounded-lg bg-white border p-2">
-
-                <div className="text-xs text-gray-500">
-
+              <div className="rounded-lg border bg-white py-1 text-center">
+                <div className="text-[11px] text-gray-500">
                   Total
-
                 </div>
 
-                <div className="font-bold text-lg">
-
+                <div className="text-xl font-bold">
                   {estatisticas.totalMilitares}
-
                 </div>
-
               </div>
 
-              <div className="rounded-lg bg-green-100 border p-2">
-
-                <div className="text-xs text-gray-600">
-
+              <div className="rounded-lg border bg-green-50 py-1 text-center">
+                <div className="text-[11px] text-gray-500">
                   Avaliados
-
                 </div>
-
-                <div className="font-bold text-green-700 text-lg">
-
+                <div className="text-xl font-bold text-green-700">
                   {estatisticas.totalAvaliados}
-
                 </div>
-
               </div>
 
-              <div className="rounded-lg bg-orange-100 border p-2">
-
-                <div className="text-xs text-gray-600">
-
+              <div className="rounded-lg border bg-yellow-50 py-1 text-center">
+                <div className="text-[11px] text-gray-500">
                   Pendentes
-
                 </div>
-
-                <div className="font-bold text-orange-700 text-lg">
-
+                <div className="text-xl font-bold text-orange-600">
                   {estatisticas.pendentes}
-
                 </div>
-
+              </div>
+              
+              <div className="rounded-lg border bg-gray-100 py-1 text-center">
+                <div className="text-[11px] text-gray-500">
+                  Não Realizados
+                </div>
+                <div className="text-xl font-bold text-gray-700">
+                  {estatisticas.naoRealizados}
+                </div>
               </div>
 
             </div>
 
           </div>
 
-          <button
+          <div className="mt-2">
 
-            onClick={() => navigate("/coleta/importar")}
-
-            className="w-full bg-blue-700 hover:bg-blue-800 text-white rounded-xl py-3 font-semibold transition"
-
-          >
-
-            📥 Trocar Coleta
-
-          </button>
-
-          <div>
-
-            <label className="block mb-2 font-semibold">
+            <label className="block mb-1 font-semibold">
 
               Nome de Guerra
 
@@ -516,21 +503,17 @@ export default function AplicacaoColeta() {
 
               className="border rounded-full px-5 py-3 w-full"
 
-            />
-
-          </div>
-
-          <div className="border rounded-xl overflow-hidden max-h-[420px] overflow-y-auto">
+            />         
 
             {
 
               militaresFiltrados.length === 0 && busca.trim() !== "" && (
 
-                <div className="p-5 text-center text-gray-500">
+                <p className="mt-2 mb-2 text-center text-sm font-medium text-red-600">
 
                   Nenhum militar encontrado.
 
-                </div>
+                </p>
 
               )
 
@@ -636,37 +619,34 @@ export default function AplicacaoColeta() {
 
             }
 
+            </div>
+
+          <div className=" mt-5 pt-1">
+
+            <button
+
+              type="button"
+
+              onClick={sairAplicacao}
+
+              className="
+                w-full
+                bg-gray-700
+                hover:bg-gray-800
+                text-white
+                rounded-xl
+                py-3
+                font-semibold
+                transition
+              "
+
+            >
+
+              SAIR
+
+            </button>
+
           </div>
-
-          {
-
-            estatisticas.pendentes === 0 &&
-
-            estatisticas.totalMilitares > 0 && (
-
-              <div className="rounded-xl bg-green-100 border border-green-400 p-4 text-center">
-
-                <p className="font-bold text-green-800 mb-3">
-
-                  Todos os militares foram avaliados.
-
-                </p>
-
-                <button
-
-                  className="w-full bg-green-700 hover:bg-green-800 text-white rounded-xl py-3 font-semibold"
-
-                >
-
-                  📤 EXPORTAR COLETA
-
-                </button>
-
-              </div>
-
-            )
-
-          }
 
         </div>
 

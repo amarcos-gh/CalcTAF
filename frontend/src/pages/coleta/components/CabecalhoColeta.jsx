@@ -42,20 +42,24 @@ export default function CabecalhoColeta({
 
       {subunidade && (
 
-        <p
-          className="
-            mt-1
-            text-sm
-            text-gray-500
-            text-center
-          "
-        >
+      <p
+        className="
+          mt-1
+          text-sm
+          text-gray-500
+          text-center
+        "
+      >
 
-          {subunidade}
+        {
+          typeof subunidade === "object"
+            ? subunidade.nome
+            : subunidade
+        }
 
-        </p>
+      </p>
 
-      )}
+    )}
 
     </div>
 

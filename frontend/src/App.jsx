@@ -16,7 +16,7 @@ import Coletas from "./pages/coleta/Coletas";
 
 import Relatorios from "./pages/Relatorios/Relatorios";
 
-import CadastroUsuario from "./pages/CadastroUsuario/CadastroUsuario";
+import Configuracoes from "./pages/Configuracoes/Configuracoes";
 
 import RecuperarSenha from "./pages/RecuperarSenha/RecuperarSenha";
 
@@ -89,13 +89,16 @@ export default function App() {
         />
 
         <Route
-
-          path="/cadastro-usuario"
-
-          element={<CadastroUsuario />}
-
+          path="/configuracoes"
+          element={
+            <ProtectedRoute permissoes={["ADMINISTRADOR"]}>
+              <MainLayout>
+                <Configuracoes />
+              </MainLayout>
+            </ProtectedRoute>
+          }
         />
-
+        
         <Route
 
           path="/recuperar-senha"

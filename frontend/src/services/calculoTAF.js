@@ -22,6 +22,20 @@ export const MENCOES = Object.freeze({
 });
 
 // ======================================================
+// CRIAR STATUS
+// ======================================================
+
+export const STATUS_AVALIACAO = Object.freeze({
+
+  NAO_REALIZADO: "NAO_REALIZADO",
+
+  PENDENTE: "PENDENTE",
+
+  AVALIADO: "AVALIADO"
+
+});
+
+// ======================================================
 // ORDEM DAS MENÇÕES
 // ======================================================
 
@@ -128,13 +142,29 @@ async function buscarIndiceTAF({
   idade,
   valor
 }) {
+
   const tabela = await obterTabelaIndices();
+
+  console.log("======================================");
+  console.log("TOTAL DE ÍNDICES:", tabela.length);
+
+  if (tabela.length > 0) {
+    console.log("PRIMEIRO REGISTRO:", tabela[0]);
+  }
 
   const segmentoNormalizado = normalizarTexto(segmento);
   const cursoNormalizado = normalizarCurso(curso);
   const exercicioNormalizado = normalizarTexto(exercicio);
   const idadeNormalizada = normalizarNumero(idade);
   const valorNormalizado = normalizarNumero(valor);
+
+  console.log("DADOS DA BUSCA:", {
+    segmento: segmentoNormalizado,
+    curso: cursoNormalizado,
+    exercicio: exercicioNormalizado,
+    idade: idadeNormalizada,
+    valor: valorNormalizado
+  });
 
   if (
     idadeNormalizada === null ||
@@ -144,6 +174,7 @@ async function buscarIndiceTAF({
   }
 
   const registros = tabela.filter((indice) => {
+
     if (
       normalizarTexto(indice.segmento) !==
       segmentoNormalizado
@@ -176,14 +207,12 @@ async function buscarIndiceTAF({
     }
 
     const valorMin =
-      indice.valorMin === null ||
-      indice.valorMin === undefined
+      indice.valorMin == null
         ? Number.NEGATIVE_INFINITY
         : Number(indice.valorMin);
 
     const valorMax =
-      indice.valorMax === null ||
-      indice.valorMax === undefined
+      indice.valorMax == null
         ? Number.POSITIVE_INFINITY
         : Number(indice.valorMax);
 
@@ -191,7 +220,10 @@ async function buscarIndiceTAF({
       valorNormalizado >= valorMin &&
       valorNormalizado <= valorMax
     );
+
   });
+
+  console.log("REGISTROS ENCONTRADOS:", registros);
 
   if (registros.length === 0) {
     return null;
@@ -204,19 +236,45 @@ async function buscarIndiceTAF({
   }
 
   return registros[0];
-}
 
+}
+/*
+======================================================
+FUNÇÃO DESATIVADA EM 01/08/2026
+
+Motivo:
+Substituída pela função buscarIndiceTAF(), que faz
+a busca por faixas (idadeMin/idadeMax e valorMin/valorMax).
+
+Mantida temporariamente para rollback, caso necessário.
+======================================================
 // ======================================================
 // BUSCAR MENÇÃO
 // ======================================================
 
 async function buscarMencao(dados) {
-  const registro = await buscarIndiceTAF(dados);
+
+  const tabela = await obterTabelaIndices();
+
+  const registro = tabela.find((item) =>
+
+    item.segmento === dados.segmento &&
+    item.cursoCodigo === dados.curso &&
+    item.exercicio === dados.exercicio &&
+    Number(item.idade) === Number(dados.idade) &&
+    Number(item.valor) === Number(dados.valor)
+
+  );
 
   return registro
     ? registro.mencao
     : MENCOES.NR;
+
 }
+======================================================
+FIM DA FUNÇÃO DESATIVADA
+======================================================
+*/
 
 // ======================================================
 // CALCULAR MENÇÃO
@@ -235,13 +293,15 @@ export async function calcularMencao({
     return MENCOES.NR;
   }
 
-  return await buscarMencao({
+  const indice = await buscarIndiceTAF({
     segmento,
     curso,
     exercicio,
     idade,
     valor: valorNormalizado
   });
+
+  return indice?.mencao ?? MENCOES.NR;
 }
 
 // ======================================================
@@ -254,6 +314,7 @@ export async function calcularCorrida(
   idade,
   valor
 ) {
+  
   return await calcularMencao({
     segmento,
     curso,
@@ -401,47 +462,145 @@ export function aplicarRegrasEspeciais({
 // ======================================================
 
 export function calcularMencaoFinal({
+
   corrida,
+
   flexao,
+
   abdominal,
+
   barra,
+
   ppm
+
 }) {
+
+  // ==========================================
+  // Exercícios obrigatórios
+  // ==========================================
+
+  const obrigatorios = [
+
+    corrida,
+
+    flexao,
+
+    abdominal
+
+  ];
+
+  // ==========================================
+  // Nenhum exercício lançado
+  // ==========================================
+
+  const nenhumLancado = obrigatorios.every(
+
+    item => item === MENCOES.NR
+
+  );
+
+  if (nenhumLancado) {
+
+    return {
+
+      status: STATUS_AVALIACAO.NAO_REALIZADO,
+
+      mencaoFinal: MENCOES.NR
+
+    };
+
+  }
+
+  // ==========================================
+  // Existe exercício obrigatório ainda em NR
+  // ==========================================
+
+  const existeNR = obrigatorios.some(
+
+    item => item === MENCOES.NR
+
+  );
+
+  if (existeNR) {
+
+    return {
+
+      status: STATUS_AVALIACAO.PENDENTE,
+
+      mencaoFinal: MENCOES.NR
+
+    };
+
+  }
+
+  // ==========================================
+  // Todos obrigatórios lançados
+  // ==========================================
+
   let pior = null;
 
   const mencoes = [
+
     corrida,
+
     flexao,
+
     abdominal,
+
     barra,
+
     ppm
+
   ];
 
   for (const mencao of mencoes) {
 
     if (
+
       mencao === null ||
+
       mencao === undefined ||
+
       mencao === MENCOES.NR ||
+
       mencao === MENCOES.NF ||
+
       mencao === MENCOES.A ||
+
       mencao === MENCOES.NA
+
     ) {
+
       continue;
+
     }
 
     if (pior === null) {
+
       pior = mencao;
+
       continue;
+
     }
 
     pior = piorMencao(
+
       pior,
+
       mencao
+
     );
+
   }
 
-  return pior ?? MENCOES.NR;
+  return {
+
+    status: STATUS_AVALIACAO.AVALIADO,
+
+    mencaoFinal: pior ?? MENCOES.NR
+
+  };
+
 }
 
 // ======================================================
@@ -507,14 +666,20 @@ export async function processarAvaliacao({
       ppm: mencaoPPM
     });
 
-  const mencaoFinal =
-    calcularMencaoFinal({
-      corrida: mencaoCorrida,
-      flexao: mencaoFlexao,
-      abdominal: mencaoAbdominal,
-      barra: regras.barra,
-      ppm: regras.ppm
-    });
+  const resultado =
+  calcularMencaoFinal({
+
+    corrida: mencaoCorrida,
+
+    flexao: mencaoFlexao,
+
+    abdominal: mencaoAbdominal,
+
+    barra: regras.barra,
+
+    ppm: regras.ppm
+
+  });
 
   return {
 
@@ -536,7 +701,9 @@ export async function processarAvaliacao({
 
     // Resultado da avaliação
 
-    mencaoFinal
+    status: resultado.status,
+
+    mencaoFinal: resultado.mencaoFinal
 
   };
 }

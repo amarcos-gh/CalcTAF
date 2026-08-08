@@ -597,7 +597,51 @@ setAvaliacoes(
 
     else {
 
-      mostrarMensagem("Militar sem avaliação para esta chamada.");
+    if (avaliacaoExistente) {
+
+      // =====================================================
+      // EXISTE REGISTRO, MAS A MENÇÃO FINAL É NR
+      // O militar ainda não foi avaliado.
+      // Mantemos o registro para que o salvamento faça PUT
+      // e não crie uma avaliação duplicada.
+      // =====================================================
+
+      mostrarMensagem(
+        "Militar sem avaliação para esta chamada."
+      );
+
+      setAvaliacaoSelecionada(avaliacaoExistente);
+
+      setForm((anterior) => ({
+
+        ...anterior,
+
+        militarId: militar.id,
+
+        corrida: "",
+
+        flexao: "",
+
+        abdominal: "",
+
+        barra: "",
+
+        ppm: ""
+
+      }));
+
+    }
+
+    else {
+
+      // =====================================================
+      // NÃO EXISTE REGISTRO PARA ESTA CHAMADA
+      // O salvamento deverá criar uma nova avaliação.
+      // =====================================================
+
+      mostrarMensagem(
+        "Militar sem avaliação para esta chamada."
+      );
 
       setAvaliacaoSelecionada(null);
 
@@ -621,11 +665,13 @@ setAvaliacoes(
 
     }
 
-    setTimeout(() => {
+  }
 
-      corridaRef.current?.focus();
+  setTimeout(() => {
 
-    }, 50);
+    corridaRef.current?.focus();
+
+  }, 50);
 
   }
 
@@ -676,21 +722,28 @@ setAvaliacoes(
 
     }
 
-    if (avaliacaoSelecionada) {
+    if (
+        avaliacaoSelecionada &&
+        avaliacaoSelecionada.mencaoFinal !== "NR"
+      ) {
 
-      const confirmar = window.confirm(
+        const confirmar = window.confirm(
 
-        "Este militar já possui avaliação nesta chamada.\n\nDeseja atualizá-la?"
+          "Este militar já possui avaliação nesta chamada.\n\nDeseja atualizá-la?"
 
-      );
+        );
 
-      if (!confirmar) {
+        if (!confirmar) {
 
-        return;
+          return;
+
+        }
 
       }
 
-      try {
+      if (avaliacaoSelecionada) {
+
+        try {
 
         const response = await api.put(
 

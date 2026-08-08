@@ -466,38 +466,43 @@ export async function criarAvaliacao(req, res) {
         militarId: Number(militarId),
 
         chamada: {
-          campanhaId: chamada.campanhaId
+
+          campanhaId: chamada.campanhaId,
+
+          numeroChamada: {
+
+            lt: chamada.numeroChamada
+
+          }
+
+        },
+
+        mencaoFinal: {
+
+          not: "NR"
+
         }
 
       },
 
       include: {
+
         chamada: true
+
       }
 
     });
 
-    if (
-
-    avaliacaoMesmoTAF
-
-    &&
-
-    avaliacaoMesmoTAF.chamadaId !==
-
-    Number(
-      chamadaId
-    )
-
-    ) {
+  if (avaliacaoMesmoTAF) {
 
     return res.status(400).json({
 
-    error:
+      error:
 
-      `Militar já está relacionado na ${avaliacaoMesmoTAF.chamada.numeroChamada}ª Chamada deste TAF.`
+        `Militar já está relacionado na ${avaliacaoMesmoTAF.chamada.numeroChamada}ª Chamada deste TAF.`
 
     });
+
   }
 
   const avaliacaoExistente =

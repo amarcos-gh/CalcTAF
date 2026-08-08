@@ -604,7 +604,7 @@ export default function LoginColeta() {
     <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm">
 
       <CabecalhoColeta
-        siglaOM={coleta?.om?.sigla}
+        siglaOM=""
         subunidade={
           coleta?.subunidade ??
           coleta?.su

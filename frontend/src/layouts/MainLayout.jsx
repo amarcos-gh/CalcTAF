@@ -201,7 +201,7 @@ return (
             }
           `}
         >
-          👥 Militares {!podeMilitares && "🔒"}
+          👥 MILITARES {!podeMilitares && "🔒"}
         </Link>
 
         <Link
@@ -221,7 +221,7 @@ return (
             }
           `}
         >
-          📝 Avaliações {!podeAvaliacoes && "🔒"}
+          📝 AVALIAÇOES {!podeAvaliacoes && "🔒"}
         </Link>
 
         <button
@@ -241,7 +241,7 @@ return (
             }
           `}
         >
-          📥 Coletas {!podeColetas && "🔒"}
+          📥 COLETAS {!podeColetas && "🔒"}
         </button>
 
         <button
@@ -261,7 +261,7 @@ return (
             }
           `}
         >
-          📊 Relatórios {!podeRelatorios && "🔒"}
+          📊 RELATÓRIOS {!podeRelatorios && "🔒"}
         </button>        
         
         <button
@@ -281,7 +281,7 @@ return (
             }
           `}
         >
-          ⚙️ Configurações {!podeConfiguracoes && "🔒"}
+          ⚙️ CONFIGURAÇÕES {!podeConfiguracoes && "🔒"}
         </button>
 
         <button
@@ -298,7 +298,7 @@ return (
             w-full
           "
         >
-          ❌ Sair
+          ❌ SAIR
         </button>
 
       </nav>

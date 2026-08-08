@@ -44,17 +44,11 @@ export async function buscarMilitares(req, res) {
   try {
 
     const {
-
       busca,
-
       omId,
-
       numeroTAF,
-
       numeroChamada,
-
       subunidadeId
-
     } = req.query;
 
     const ano = new Date().getFullYear();
@@ -66,7 +60,6 @@ export async function buscarMilitares(req, res) {
         ano_numeroTAF: {
 
           ano,
-
           numeroTAF: Number(numeroTAF)
 
         }
@@ -76,6 +69,8 @@ export async function buscarMilitares(req, res) {
     });
 
     let chamadaId = null;
+
+    let chamadaPrimeiraId = null;
 
     if (campanha) {
 
@@ -101,6 +96,29 @@ export async function buscarMilitares(req, res) {
 
       }
 
+      const primeiraChamada =
+        await prisma.chamadaTAF.findUnique({
+
+          where: {
+
+            campanhaId_numeroChamada: {
+
+              campanhaId: campanha.id,
+
+              numeroChamada: 1
+
+            }
+
+          }
+
+        });
+
+      if (primeiraChamada) {
+
+        chamadaPrimeiraId = primeiraChamada.id;
+
+      }
+
     }
 
     const filtroMilitar = {
@@ -111,14 +129,21 @@ export async function buscarMilitares(req, res) {
 
     };
 
-    if (subunidadeId && Number(subunidadeId) > 0) {
+    if (
 
-      filtroMilitar.subunidadeId = Number(subunidadeId);
+      subunidadeId &&
+
+      Number(subunidadeId) > 0
+
+    ) {
+
+      filtroMilitar.subunidadeId =
+        Number(subunidadeId);
 
     }
 
     // =====================================================
-    // TOTAL DE MILITARES DA OM
+    // TOTAL DE MILITARES
     // =====================================================
 
     const total = await prisma.militar.count({
@@ -128,40 +153,62 @@ export async function buscarMilitares(req, res) {
     });
 
     // =====================================================
-    // TOTAL DE AVALIADOS NESTA CHAMADA
+    // TOTAL DE AVALIADOS
+    //
+    // 1ª CHAMADA:
+    // A coleta inicial começa com todos os militares.
+    // Portanto, Avaliados = 0.
+    //
+    // 2ª CHAMADA:
+    // Conta somente quem já possui Menção Final diferente
+    // de NR na 1ª Chamada do mesmo TAF.
     // =====================================================
 
     let avaliados = 0;
 
-    if (chamadaId) {
+    if (
+      Number(numeroChamada) === 2 &&
+      chamadaPrimeiraId
+    ) {
 
-      avaliados = await prisma.avaliacaoTAF.count({
+      avaliados =
+        await prisma.avaliacaoTAF.count({
 
-        where: {
+          where: {
 
-          chamadaId,
+            chamadaId: chamadaPrimeiraId,
 
-          militar: filtroMilitar
+            mencaoFinal: {
+              not: "NR"
+            },
 
-        }
+            militar: filtroMilitar
 
-      });
+          }
+
+        });
 
     }
 
     // =====================================================
     // FILTRO DE PESQUISA
-    // Se não houver pesquisa, retorna todos os militares.
-    // Se houver pesquisa (3+ letras), filtra pelo nome.
     // =====================================================
 
     const filtroPesquisa =
+
       busca && busca.length >= 3
+
         ? {
+
             nomeGuerra: {
-              startsWith: busca.toUpperCase()
+
+              startsWith:
+                busca.toUpperCase()
+
             }
+
           }
+
         : {};
 
     // =====================================================
@@ -186,25 +233,50 @@ export async function buscarMilitares(req, res) {
 
         subunidade: true,
 
-        avaliacoes: chamadaId
+        avaliacoes:
 
-          ? {
+          Number(numeroChamada) === 2
 
-              where: {
+            ? {
 
-                chamadaId
+                where: {
 
-              },
+                  chamadaId:
+                    chamadaPrimeiraId
 
-              select: {
+                },
 
-                id: true
+                select: {
+
+                  id: true,
+
+                  mencaoFinal: true
+
+                }
 
               }
 
-            }
+            : chamadaId
 
-          : false
+              ? {
+
+                  where: {
+
+                    chamadaId
+
+                  },
+
+                  select: {
+
+                    id: true,
+
+                    mencaoFinal: true
+
+                  }
+
+                }
+
+              : false
 
       },
 
@@ -230,21 +302,56 @@ export async function buscarMilitares(req, res) {
 
     });
 
-    const resultado = militares.map((militar) => ({
+    // =====================================================
+    // RESULTADO
+    //
+    // 1ª CHAMADA:
+    // avaliado = possui avaliação na 1ª chamada
+    // e menção final diferente de NR.
+    //
+    // 2ª CHAMADA:
+    // avaliado = possui avaliação na 1ª chamada
+    // e menção final diferente de NR.
+    //
+    // Portanto:
+    //
+    // true  = já concluiu a 1ª chamada
+    // false = pode participar da 2ª chamada
+    // =====================================================
 
-      ...militar,
+    const resultado = militares.map((militar) => {
 
-      idade: calcularIdade(militar.dataNascimento),
+      const avaliacao =
 
-      avaliado:
+        militar.avaliacoes.length > 0
 
-        chamadaId
+          ? militar.avaliacoes[0]
 
-          ? militar.avaliacoes.length > 0
+          : null;
 
-          : false
+      const avaliado =
 
-    }));
+        !!avaliacao &&
+
+        avaliacao.mencaoFinal !== "NR";
+
+      return {
+
+        ...militar,
+
+        idade:
+
+          calcularIdade(
+
+            militar.dataNascimento
+
+          ),
+
+        avaliado
+
+      };
+
+    });
 
     return res.json({
 
@@ -264,7 +371,8 @@ export async function buscarMilitares(req, res) {
 
     return res.status(500).json({
 
-      error: "Erro ao buscar militares."
+      error:
+        "Erro ao buscar militares."
 
     });
 
@@ -672,6 +780,34 @@ export async function exportarColeta(req, res) {
 
               chamadaId: primeiraChamada.id
 
+            },
+
+            select: {
+
+              id: true,
+
+              mencaoFinal: true,
+
+              corrida: true,
+
+              mencaoCorrida: true,
+
+              flexao: true,
+
+              mencaoFlexao: true,
+
+              abdominal: true,
+
+              mencaoAbdominal: true,
+
+              barra: true,
+
+              mencaoBarra: true,
+
+              ppm: true,
+
+              mencaoPPM: true
+
             }
 
           }
@@ -702,7 +838,7 @@ export async function exportarColeta(req, res) {
 
       militares = militaresOM.filter((militar) => {
 
-        // Não possui avaliação na 1ª Chamada
+        // Não possui avaliação na chamada
         if (militar.avaliacoes.length === 0) {
 
           return true;
@@ -711,18 +847,11 @@ export async function exportarColeta(req, res) {
 
         const avaliacao = militar.avaliacoes[0];
 
-        // Possui pelo menos um exercício NR
+        // Considera pendente qualquer avaliação
+        // cuja Menção Final ainda seja NR
         return (
 
-          avaliacao.mencaoCorrida === "NR" ||
-
-          avaliacao.mencaoFlexao === "NR" ||
-
-          avaliacao.mencaoAbdominal === "NR" ||
-
-          avaliacao.mencaoBarra === "NR" ||
-
-          avaliacao.mencaoPPM === "NR"
+          avaliacao.mencaoFinal === "NR"
 
         );
 
@@ -738,7 +867,19 @@ export async function exportarColeta(req, res) {
 
       ...militar,
 
-      idade: calcularIdade(militar.dataNascimento)
+      idade: calcularIdade(
+
+        militar.dataNascimento
+
+      ),
+
+      avaliacaoPrimeiraChamada:
+
+        militar.avaliacoes.length > 0
+
+          ? militar.avaliacoes[0]
+
+          : null
 
     }));
 

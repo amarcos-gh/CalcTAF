@@ -59,6 +59,26 @@ export default function Coletas() {
 
   useEffect(() => {
 
+    if (Number(numeroChamada) === 1) {
+
+      setFiltroSelecao("TODOS");
+
+    }
+
+    else if (Number(numeroChamada) === 2) {
+
+      setFiltroSelecao("PENDENTES");
+
+    }
+
+  }, [
+
+    numeroChamada
+
+  ]);
+
+  useEffect(() => {
+
     carregarSubunidades();
 
   }, [omId]);
@@ -149,7 +169,7 @@ export default function Coletas() {
 
           militares.map(
 
-            militar => militar.id
+            (militar) => militar.id
 
           )
 
@@ -157,21 +177,22 @@ export default function Coletas() {
 
         break;
 
+
       case "PENDENTES":
 
         setSelecionados(
 
           militares
 
-            .filter((militar) =>
+            .filter(
 
-              militar.mencaoFinal === "NR"
+              (militar) => !militar.avaliado
 
             )
 
             .map(
 
-              militar => militar.id
+              (militar) => militar.id
 
             )
 
@@ -179,11 +200,12 @@ export default function Coletas() {
 
         break;
 
-            default:
 
-              setSelecionados([]);
+      default:
 
-              break;
+        setSelecionados([]);
+
+        break;
 
     }
 
@@ -440,8 +462,6 @@ export default function Coletas() {
             </div>
 
           </div>
-
-          
 
           <div className="mt-5 grid grid-cols-4 gap-3">
 

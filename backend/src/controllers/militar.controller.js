@@ -523,7 +523,26 @@ export async function listarMilitares(req, res) {
       include: {
         postoGraduacao: true,
         curso: true,
-        subunidade: true
+        subunidade: true,
+
+        avaliacoes: {
+
+          include: {
+
+            chamada: {
+
+              include: {
+
+                campanha: true
+
+              }
+
+            }
+
+          }
+
+        }
+
       },
 
       orderBy: {
@@ -532,9 +551,62 @@ export async function listarMilitares(req, res) {
 
     });
 
+console.dir(
+
+  militares[0],
+
+  {
+
+    depth: null
+
+  }
+
+);
+
+console.log(
+
+  "Militares encontrados:",
+
+  militares.length
+
+);
+
+
     console.log("Militares encontrados:", militares.length);
 
-    return res.json(militares);
+    const militaresComPrimeiraChamada = militares.map((militar) => {
+
+    const avaliacaoPrimeiraChamada = militar.avaliacoes.find(
+
+      (avaliacao) =>
+
+        avaliacao.chamada.numeroChamada === 1
+
+    );
+
+    return {
+
+      ...militar,
+
+      avaliacaoPrimeiraChamada
+
+    };
+
+  });
+
+    console.log(
+    JSON.stringify(
+      militaresComPrimeiraChamada[0],
+      null,
+      2
+    )
+  );
+
+  return res.json(
+
+    militaresComPrimeiraChamada
+
+  );
 
   } catch (error) {
 

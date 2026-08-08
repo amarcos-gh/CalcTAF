@@ -26,6 +26,10 @@ export default function Avaliacoes() {
 
   const [avaliacaoSelecionada, setAvaliacaoSelecionada] = useState(null);
 
+  const [bloquearLancamento, setBloquearLancamento] = useState(false);
+
+  const [militarBloqueado, setMilitarBloqueado] = useState(false);
+
   const [resultadoTempoReal, setResultadoTempoReal] = useState({
 
     mencaoCorrida: "--",
@@ -66,13 +70,9 @@ export default function Avaliacoes() {
 
   useEffect(() => {
 
-    console.log("MENSAGEM =", mensagem);
-
   }, [mensagem]);
 
   function mostrarMensagem(texto) {
-
-     console.log("MOSTRAR:", texto);
 
   setMensagem(texto);
 
@@ -269,29 +269,41 @@ export default function Avaliacoes() {
 
     async function carregarMilitares() {
 
-  try {
+    try {
 
-    const response = await api.get(
+      const response = await api.get(
 
-      "/militares",
+        "/militares",
 
-      {
-        params: {
-          omId: localStorage.getItem("omId")
+        {
+          params: {
+            omId: localStorage.getItem("omId")
+          }
         }
-      }
 
-    );
+      );
 
-    setMilitares(response.data);
+      console.dir(
 
-  } catch (error) {
+        response.data[0],
 
-    console.error(error);
+        {
+
+          depth: null
+
+        }
+
+      );
+
+      setMilitares(response.data);
+
+    } catch (error) {
+
+      console.error(error);
+
+    }
 
   }
-
-}
 
   async function carregarAvaliacoes() {
 
@@ -439,6 +451,95 @@ setAvaliacoes(
       `${militar.postoGraduacao?.abreviacao || ""} ${militar.nomeGuerra} - ${militar.nomeCompleto}`
     );
 
+    // =====================================================
+    // CHAMADA SELECIONADA
+    // =====================================================
+
+    const chamadaSelecionada = campanhas
+      .find((c) => c.id === Number(form.campanhaId))
+      ?.chamadas
+      ?.find((c) => c.id === Number(form.chamadaId));
+
+    const numeroChamada =
+      chamadaSelecionada?.numeroChamada;
+
+    const avaliacaoPrimeiraChamada =
+      militar.avaliacaoPrimeiraChamada;
+
+    // ================================================
+    // BLOQUEIO PARA 2ª CHAMADA
+    // ================================================
+
+    if (
+
+      numeroChamada === 2 &&
+
+      avaliacaoPrimeiraChamada &&
+
+      avaliacaoPrimeiraChamada.mencaoFinal !== "NR"
+
+    ) {
+
+      setMilitarBloqueado(true);
+
+    }
+
+    else {
+
+      setMilitarBloqueado(false);
+
+    }
+
+    if (
+
+      numeroChamada === 2 &&
+
+      avaliacaoPrimeiraChamada &&
+
+      avaliacaoPrimeiraChamada.mencaoFinal !== "NR"
+
+    ) {
+
+      mostrarMensagem(
+
+        "Militar já avaliado na 1ª Chamada."
+
+      );
+
+      setAvaliacaoSelecionada(null);
+
+      setForm((anterior) => ({
+
+        ...anterior,
+
+        militarId: militar.id,
+
+        corrida: "",
+
+        flexao: "",
+
+        abdominal: "",
+
+        barra: "",
+
+        ppm: ""
+
+      }));
+
+      setTimeout(() => {
+
+        corridaRef.current?.focus();
+
+      }, 50);
+
+      return;
+
+    }
+
+    // =====================================================
+    // AVALIAÇÃO DA CHAMADA ATUAL
+    // =====================================================
+
     const avaliacaoExistente = avaliacoes.find((a) => {
 
       return (
@@ -451,7 +552,11 @@ setAvaliacoes(
 
     });
 
-    if (avaliacaoExistente) {
+    if (
+        avaliacaoExistente &&
+        avaliacaoExistente.mencaoFinal &&
+        avaliacaoExistente.mencaoFinal !== "NR"
+      ) {
 
       mostrarMensagem("Militar já avaliado nesta chamada.");
 
@@ -1382,7 +1487,12 @@ return (
 
                                 inputMode="numeric"
 
-                                disabled={!militarSelecionado}
+                                disabled={
+
+                                  !militarSelecionado ||
+
+                                  militarBloqueado
+                                }
 
                                 value={form.corrida}
 
@@ -1428,7 +1538,12 @@ return (
 
                                 inputMode="numeric"
 
-                                disabled={!militarSelecionado}
+                                disabled={
+
+                                  !militarSelecionado ||
+
+                                  militarBloqueado
+                                }
 
                                 value={form.flexao}
 
@@ -1474,7 +1589,12 @@ return (
 
                                 inputMode="numeric"
 
-                                disabled={!militarSelecionado}
+                                disabled={
+
+                                  !militarSelecionado ||
+
+                                  militarBloqueado
+                                }
 
                                 value={form.abdominal}
 
@@ -1524,8 +1644,9 @@ return (
 
                                     !militarSelecionado ||
 
-                                    dispensaBarra
+                                    dispensaBarra ||
 
+                                    militarBloqueado
                                 }
 
                                 value={form.barra}
@@ -1565,39 +1686,40 @@ return (
 
                               <select
 
-      disabled={
+                                disabled={
 
-          buscaMilitar.trim() === "" ||
+                                    buscaMilitar.trim() === "" ||
 
-          dispensaPPM
+                                    dispensaPPM ||
 
-      }
+                                    militarBloqueado
+                                }
 
-      value={form.ppm}
+                                value={form.ppm}
 
-      onChange={(e)=>
+                                onChange={(e)=>
 
-          setForm({
+                                    setForm({
 
-            ...form,
+                                      ...form,
 
-            ppm: e.target.value
+                                      ppm: e.target.value
 
-        })
+                                  })
 
-    }
+                              }
 
-    className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-100"
+                              className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-100"
 
-  >
+                            >
 
-    <option value="">Selecione</option>
+                              <option value="">Selecione</option>
 
-    <option value="A">Apto</option>
+                              <option value="S">Suficiente</option>
 
-    <option value="NA">Inapto</option>
+                              <option value="I">Insuficiente</option>
 
-  </select>
+                            </select>
 
                           </div>
 

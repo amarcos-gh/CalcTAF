@@ -134,25 +134,25 @@ export async function criarMilitar(req, res) {
       });
     }
 
-const omExiste =
+    const omExiste =
 
-  await prisma.oM.findFirst({
+      await prisma.oM.findFirst({
 
-    where: {
+        where: {
 
-      id:
-        Number(omId)
+          id:
+            Number(omId)
+        }
+      });
+
+    if (!omExiste) {
+
+      return res.status(400).json({
+
+        error:
+          "OM inválida."
+      });
     }
-  });
-
-if (!omExiste) {
-
-  return res.status(400).json({
-
-    error:
-      "OM inválida."
-  });
-}
 
     let subunidadeExistente =
 
@@ -172,110 +172,110 @@ if (!omExiste) {
       }
     });
 
-if (!subunidadeExistente) {
+    if (!subunidadeExistente) {
 
-  subunidadeExistente =
+      subunidadeExistente =
 
-    await prisma.subunidade.create({
+        await prisma.subunidade.create({
+
+          data: {
+
+            nome:
+
+              subunidade.trim(),
+
+            omId:
+
+              Number(omId)
+          }
+        });
+    }
+
+  const militar =
+
+    await prisma.militar.create({
 
       data: {
 
-        nome:
+        nomeCompleto:
 
-          subunidade.trim(),
+          nomeCompleto.trim(),
 
-        omId:
+        nomeGuerra:
 
-          Number(omId)
+          nomeGuerra.trim(),
+
+        segmento,
+
+        dataNascimento:
+
+          converterDataBR(
+            dataNascimento
+          ),
+
+        om: {
+
+          connect: {
+
+            id:
+
+              Number(
+                omId
+              )
+          }
+        },
+
+        subunidade: {
+
+          connect: {
+
+            id:
+
+              subunidadeExistente.id
+          }
+        },
+
+        postoGraduacao: {
+
+          connect: {
+
+            id:
+
+              Number(
+                postoGraduacaoId
+              )
+          }
+        },
+
+        curso: {
+
+          connect: {
+
+            id:
+
+              Number(
+                cursoId
+              )
+          }
+        }
+      },
+
+      include: {
+
+        postoGraduacao: true,
+
+        om: true,
+
+        subunidade: true,
+
+        curso: true
       }
     });
-}
 
-const militar =
+  return res.status(201).json(
 
-  await prisma.militar.create({
-
-    data: {
-
-      nomeCompleto:
-
-        nomeCompleto.trim(),
-
-      nomeGuerra:
-
-        nomeGuerra.trim(),
-
-      segmento,
-
-      dataNascimento:
-
-        converterDataBR(
-          dataNascimento
-        ),
-
-      om: {
-
-        connect: {
-
-          id:
-
-            Number(
-              omId
-            )
-        }
-      },
-
-      subunidade: {
-
-        connect: {
-
-          id:
-
-            subunidadeExistente.id
-        }
-      },
-
-      postoGraduacao: {
-
-        connect: {
-
-          id:
-
-            Number(
-              postoGraduacaoId
-            )
-        }
-      },
-
-      curso: {
-
-        connect: {
-
-          id:
-
-            Number(
-              cursoId
-            )
-        }
-      }
-    },
-
-    include: {
-
-      postoGraduacao: true,
-
-      om: true,
-
-      subunidade: true,
-
-      curso: true
-    }
-  });
-
-return res.status(201).json(
-
-  militar
-);
+    militar
+  );
 
   } catch (error) {
 
@@ -663,6 +663,589 @@ export async function excluirMilitar(
     return res.status(500).json({
 
       error:
+        error.message
+
+    });
+
+  }
+
+}
+
+export async function importarMilitares(req, res) {
+
+  try {
+
+    const omId = Number(req.usuario?.omId);
+
+    if (!omId) {
+
+      return res.status(400).json({
+
+        error:
+          "OM do usuário não identificada."
+
+      });
+
+    }
+
+    const {
+
+      militares
+
+    } = req.body;
+
+    if (!Array.isArray(militares)) {
+
+      return res.status(400).json({
+
+        error:
+          "Lista de militares não informada."
+
+      });
+
+    }
+
+    if (militares.length === 0) {
+
+      return res.status(400).json({
+
+        error:
+          "A planilha não possui militares."
+
+      });
+
+    }
+
+    let processados = 0;
+
+    let atualizados = 0;
+
+    let cadastrados = 0;
+
+    let inconsistencias = [];
+
+    for (let i = 0; i < militares.length; i++) {
+
+      const militar = militares[i];
+
+      const linha = i + 2;
+
+      if (!militar?.nomeCompleto?.trim()) {
+
+        inconsistencias.push({
+
+          linha,
+
+          nome:
+            "",
+
+          motivo:
+            "Nome Completo não informado."
+
+        });
+
+        continue;
+
+      }
+
+      const nomeCompleto =
+        militar.nomeCompleto.trim();
+
+            const pg =
+
+        militar.pg?.trim();
+
+      const nomeGuerra =
+
+        militar.nomeGuerra?.trim();
+
+      const segmento =
+
+        militar.segmento?.trim().toUpperCase();
+
+      const cursoCodigo =
+
+        militar.curso?.trim();
+
+      const dataNascimento =
+
+        militar.dataNascimento?.trim();
+
+      const subunidade =
+
+        militar.subunidade?.trim();
+
+
+      // ==========================================
+      // VALIDAÇÃO DOS CAMPOS
+      // ==========================================
+
+      if (!pg) {
+
+        inconsistencias.push({
+
+          linha,
+
+          nome: nomeCompleto,
+
+          motivo:
+            "PG não informada."
+
+        });
+
+        continue;
+
+      }
+
+      if (!nomeGuerra) {
+
+        inconsistencias.push({
+
+          linha,
+
+          nome: nomeCompleto,
+
+          motivo:
+            "Nome Guerra não informado."
+
+        });
+
+        continue;
+
+      }
+
+      if (
+
+        segmento !== "M" &&
+
+        segmento !== "F"
+
+      ) {
+
+        inconsistencias.push({
+
+          linha,
+
+          nome: nomeCompleto,
+
+          motivo:
+            "Segmento inválido. Use M ou F."
+
+        });
+
+        continue;
+
+      }
+
+      if (!cursoCodigo) {
+
+        inconsistencias.push({
+
+          linha,
+
+          nome: nomeCompleto,
+
+          motivo:
+            "Curso não informado."
+
+        });
+
+        continue;
+
+      }
+
+      if (!dataNascimento) {
+
+        inconsistencias.push({
+
+          linha,
+
+          nome: nomeCompleto,
+
+          motivo:
+            "Data de Nascimento não informada."
+
+        });
+
+        continue;
+
+      }
+
+      if (!subunidade) {
+
+        inconsistencias.push({
+
+          linha,
+
+          nome: nomeCompleto,
+
+          motivo:
+            "Subunidade não informada."
+
+        });
+
+        continue;
+
+      }
+
+      // ==========================================
+      // LOCALIZAR POSTO / GRADUAÇÃO
+      // ==========================================
+
+      const postoGraduacao =
+
+        await prisma.postoGraduacao.findFirst({
+
+          where: {
+
+            abreviacao: pg
+
+          }
+
+        });
+
+      if (!postoGraduacao) {
+
+        inconsistencias.push({
+
+          linha,
+
+          nome: nomeCompleto,
+
+          motivo:
+            `PG "${pg}" não encontrada.`
+
+        });
+
+        continue;
+
+      }
+
+      // ==========================================
+      // LOCALIZAR CURSO
+      // ==========================================
+
+      const curso =
+
+        await prisma.curso.findFirst({
+
+          where: {
+
+            codigo: cursoCodigo
+
+          }
+
+        });
+
+      if (!curso) {
+
+        inconsistencias.push({
+
+          linha,
+
+          nome: nomeCompleto,
+
+          motivo:
+            `Curso "${cursoCodigo}" não encontrado.`
+
+        });
+
+        continue;
+
+      }
+
+      // ==========================================
+      // VALIDAR DATA
+      // ==========================================
+
+      const partesData =
+
+        dataNascimento.split("/");
+
+      if (
+
+        partesData.length !== 3
+
+      ) {
+
+        inconsistencias.push({
+
+          linha,
+
+          nome: nomeCompleto,
+
+          motivo:
+            "Data de Nascimento inválida. Use DD/MM/AAAA."
+
+        });
+
+        continue;
+
+      }
+
+      const dia =
+
+        Number(partesData[0]);
+
+      const mes =
+
+        Number(partesData[1]);
+
+      const ano =
+
+        Number(partesData[2]);
+
+      const dataConvertida =
+
+        new Date(
+
+          ano,
+
+          mes - 1,
+
+          dia
+
+        );
+
+      if (
+
+        Number.isNaN(
+
+          dataConvertida.getTime()
+
+        ) ||
+
+        dataConvertida.getDate() !== dia ||
+
+        dataConvertida.getMonth() !== mes - 1 ||
+
+        dataConvertida.getFullYear() !== ano
+
+      ) {
+
+        inconsistencias.push({
+
+          linha,
+
+          nome: nomeCompleto,
+
+          motivo:
+            "Data de Nascimento inválida. Use DD/MM/AAAA."
+
+        });
+
+        continue;
+
+      }
+
+      // ==========================================
+      // LOCALIZAR / CRIAR SUBUNIDADE
+      // ==========================================
+
+      let subunidadeExistente =
+
+        await prisma.subunidade.findFirst({
+
+          where: {
+
+            nome: subunidade,
+
+            omId
+
+          }
+
+        });
+
+      if (!subunidadeExistente) {
+
+        subunidadeExistente =
+
+          await prisma.subunidade.create({
+
+            data: {
+
+              nome: subunidade,
+
+              omId
+
+            }
+
+          });
+
+      }
+
+      // ==========================================
+      // LOCALIZAR MILITAR NA MESMA OM
+      // ==========================================
+
+      const militarExistente =
+
+        await prisma.militar.findFirst({
+
+          where: {
+
+            nomeCompleto,
+
+            omId
+
+          }
+
+        });
+
+      // ==========================================
+      // ATUALIZAR MILITAR EXISTENTE
+      // ==========================================
+
+      if (militarExistente) {
+
+        await prisma.militar.update({
+
+          where: {
+
+            id: militarExistente.id
+
+          },
+
+          data: {
+
+            nomeCompleto,
+
+            nomeGuerra,
+
+            segmento,
+
+            dataNascimento: dataConvertida,
+
+            postoGraduacaoId:
+              postoGraduacao.id,
+
+            cursoId:
+              curso.id,
+
+            subunidadeId:
+              subunidadeExistente.id
+
+          }
+
+        });
+
+        atualizados++;
+
+      }
+
+      // ==========================================
+      // CADASTRAR NOVO MILITAR
+      // ==========================================
+
+      else {
+
+        await prisma.militar.create({
+
+          data: {
+
+            nomeCompleto,
+
+            nomeGuerra,
+
+            segmento,
+
+            dataNascimento:
+              dataConvertida,
+
+            om: {
+
+              connect: {
+
+                id: omId
+
+              }
+
+            },
+
+            subunidade: {
+
+              connect: {
+
+                id:
+                  subunidadeExistente.id
+
+              }
+
+            },
+
+            postoGraduacao: {
+
+              connect: {
+
+                id:
+                  postoGraduacao.id
+
+              }
+
+            },
+
+            curso: {
+
+              connect: {
+
+                id:
+                  curso.id
+
+              }
+
+            }
+
+          }
+
+        });
+
+        cadastrados++;
+
+      }
+
+
+      processados++;
+
+    }
+
+    // ==========================================
+    // RESULTADO DA IMPORTAÇÃO
+    // ==========================================
+
+    return res.status(200).json({
+
+      sucesso: true,
+
+      total:
+
+        militares.length,
+
+      processados,
+
+      cadastrados,
+
+      atualizados,
+
+      inconsistencias
+
+    });
+
+    } catch (error) {
+
+    console.error(
+
+      "ERRO IMPORTAR MILITARES:",
+
+      error
+
+    );
+
+    return res.status(500).json({
+
+      sucesso: false,
+
+      error:
+
         error.message
 
     });

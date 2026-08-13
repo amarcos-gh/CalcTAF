@@ -48,6 +48,10 @@ export default function Avaliacoes() {
 
   const [manterPeriodo, setManterPeriodo] = useState(false);
 
+  const [paginaLogs, setPaginaLogs] = useState(1);
+
+  const registrosPorPagina = 20;
+
   const [form, setForm] = useState({
 
     militarId: "",
@@ -1079,6 +1083,48 @@ mostrarMensagem("Avaliação cadastrada com sucesso.");
       );
     });
 
+    const logsFiltrados = historico.filter((log) =>
+
+  !busca ||
+
+  log.avaliacao?.militar?.nomeGuerra
+
+    ?.toLowerCase()
+
+    .includes(
+      busca.toLowerCase()
+    )
+
+);
+
+const totalPaginas = Math.ceil(
+
+  logsFiltrados.length /
+
+  registrosPorPagina
+
+);
+
+const logsPaginaAtual =
+
+  logsFiltrados.slice(
+
+    (paginaLogs - 1) *
+
+      registrosPorPagina,
+
+    paginaLogs *
+
+      registrosPorPagina
+
+  );
+
+  useEffect(() => {
+
+  setPaginaLogs(1);
+
+}, [busca]);
+
 return (
 
     <div className="space-y-6">
@@ -1128,7 +1174,7 @@ return (
               }
             `}
           >
-            Histórico
+            Logs
           </button>
 
         </div>
@@ -1446,43 +1492,43 @@ return (
                               <div className="absolute z-50 mt-1 w-full rounded-lg border bg-white shadow-lg max-h-64 overflow-auto">
 
                                   {
+                                    militaresFiltrados.map(
 
-                                      militaresFiltrados.map(
+                                      militar => (
 
-                                          militar=>(
+                                        <button
 
-                                          <button
+                                          key={militar.id}
 
-                                            key={militar.id}
+                                          type="button"
 
-                                            type="button"
+                                          className="w-full text-left px-3 py-2 hover:bg-green-50"
 
-                                            className="w-full text-left px-3 py-2 hover:bg-green-50"
+                                          onClick={() => selecionarMilitar(militar)}
 
-                                            onClick={() => selecionarMilitar(militar)}
+                                        >
 
-                                          >
+                                          <strong>
 
-                                            <strong>
+                                            {militar.postoGraduacao?.abreviacao ?? ""} |{" "}
 
-                                              {militar.nomeGuerra}
+                                            {militar.nomeGuerra}
 
-                                            </strong>
+                                          </strong>
 
-                                            <br />
+                                          <br />
 
-                                            <small>
+                                          <small>
 
-                                              {militar.nomeCompleto}
+                                            {militar.nomeCompleto}
 
-                                            </small>
+                                          </small>
 
-                                          </button>
-
-                                          )
+                                        </button>
 
                                       )
 
+                                    )
                                   }
 
                               </div>
@@ -1916,187 +1962,274 @@ return (
       )}
 
       {/* ============================
-          ABA HISTÓRICO
+          ABA LOGS
       ============================ */}
 
       {abaAtiva === "historico" && (
 
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+  <div className="bg-white rounded-2xl shadow-lg p-6">
 
-              <div className="flex justify-between items-center mb-6">
+    <div className="flex justify-between items-center mb-6">
 
-                  <h2 className="text-xl font-bold text-slate-800">
+      <h2 className="text-xl font-bold text-slate-800">
 
-                      Histórico das Avaliações
+        Registros
 
-                  </h2>
+      </h2>
 
-                  <input
-                      type="text"
-                      placeholder="Pesquisar militar..."
-                      value={busca}
-                      onChange={(e)=>setBusca(e.target.value)}
-                      className="border rounded-lg px-3 py-2 w-72"
-                  />
+      <input
+        type="text"
+        placeholder="Pesquisar militar..."
+        value={busca}
+        onChange={(e) => setBusca(e.target.value)}
+        className="border rounded-lg px-3 py-2 w-72"
+      />
 
-              </div>
+    </div>
 
-              <div className="overflow-x-auto">
 
-                  <table className="w-full">
+    <div className="overflow-x-auto">
 
-                      <thead>
+      <table className="w-full">
 
-                          <tr className="bg-green-700 text-white">
+        <thead>
 
-                              <th className="text-left p-3">
+          <tr className="bg-green-700 text-white">
 
-                                  Ação
+            <th className="text-left p-3">
 
-                              </th>
+              Ação
 
-                              <th className="text-left p-3">
+            </th>
 
-                                  Militar
+            <th className="text-left p-3">
 
-                              </th>
+              Militar
 
-                              <th className="text-left p-3">
+            </th>
 
-                                  Data/Hora
+            <th className="text-left p-3">
 
-                              </th>
+              Data/Hora
 
-                              <th className="text-left p-3">
+            </th>
 
-                                  Usuário
+            <th className="text-left p-3">
 
-                              </th>
+              Usuário
 
-                          </tr>
+            </th>
 
-                      </thead>
+          </tr>
 
-                      <tbody>
+        </thead>
 
-                        {
 
-                          historico.length === 0 && (
+        <tbody>
 
-                            <tr>
+          {
 
-                              <td
-                                colSpan="4"
-                                className="text-center py-10 text-gray-500"
-                              >
+            logsPaginaAtual.length === 0 && (
 
-                                Nenhum registro encontrado.
+              <tr>
 
-                              </td>
+                <td
+                  colSpan="4"
+                  className="text-center py-10 text-gray-500"
+                >
 
-                            </tr>
+                  Nenhum registro encontrado.
 
-                          )
+                </td>
 
-                        }
+              </tr>
 
-                        {
+            )
 
-                          historico
+          }
 
-                            .filter((log) =>
 
-                              !busca ||
+          {
 
-                              log.avaliacao?.militar?.nomeGuerra
+            logsPaginaAtual.map((log) => (
 
-                                ?.toLowerCase()
+              <tr
 
-                                .includes(
+                key={log.id}
 
-                                  busca.toLowerCase()
+                className="border-b hover:bg-gray-50"
 
-                                )
+              >
 
-                            )
+                <td className="px-2 py-1 text-xs">
 
-                            .map((log) => (
+                  {
 
-                              <tr
+                    log.acao === "CADASTRO"
 
-                                key={log.id}
+                      ? "Cadastro"
 
-                                className="border-b hover:bg-gray-50"
+                      : "Atualização"
 
-                              >
+                  }
 
-                                <td className="p-3">
+                </td>
 
-                                  {
 
-                                    log.acao === "CADASTRO"
+                <td className="px-2 py-1 text-xs">
 
-                                      ? "Cadastro"
+                  {
 
-                                      : "Atualização"
+                    log.avaliacao?.militar?.nomeGuerra
 
-                                  }
+                  }
 
-                                </td>
+                </td>
 
-                                <td className="p-3">
 
-                                  {
+                <td className="px-2 py-1 text-xs">
 
-                                    log.avaliacao?.militar?.nomeGuerra
+                  {
 
-                                  }
+                    new Date(
 
-                                </td>
+                      log.createdAt
 
-                                <td className="p-3">
+                    ).toLocaleString(
 
-                                  {
+                      "pt-BR"
 
-                                    new Date(
+                    )
 
-                                      log.createdAt
+                  }
 
-                                    ).toLocaleString(
+                </td>
 
-                                      "pt-BR"
 
-                                    )
+                <td className="px-2 py-1 text-xs">
 
-                                  }
+                  {
 
-                                </td>
+                    log.usuario?.nome ?? "-"
 
-                                <td className="p-3">
+                  }
 
-                                  {
+                </td>
 
-                                    log.usuario?.nome ?? "-"
+              </tr>
 
-                                  }
+            ))
 
-                                </td>
+          }
 
-                              </tr>
+        </tbody>
 
-                            ))
+      </table>
 
-                        }
+    </div>
 
-                      </tbody>
 
-                  </table>
+    {/* PAGINAÇÃO */}
 
-              </div>
+    <div className="flex items-center justify-between mt-4">
 
-          </div>
+      <button
 
-        )}
+        type="button"
+
+        onClick={() =>
+
+          setPaginaLogs(
+
+            (pagina) =>
+
+              Math.max(
+
+                pagina - 1,
+
+                1
+
+              )
+
+          )
+
+        }
+
+        disabled={paginaLogs === 1}
+
+        className="
+          px-4
+          py-2
+          rounded-lg
+          bg-slate-200
+          hover:bg-slate-300
+          disabled:opacity-50
+          disabled:cursor-not-allowed
+        "
+
+      >
+
+        ← Anterior
+
+      </button>
+
+
+      <span className="text-sm text-slate-600">
+
+        Página {paginaLogs} de {Math.max(totalPaginas, 1)}
+
+      </span>
+
+
+      <button
+
+        type="button"
+
+        onClick={() =>
+
+          setPaginaLogs(
+
+            (pagina) =>
+
+              Math.min(
+
+                pagina + 1,
+
+                totalPaginas
+
+              )
+
+          )
+
+        }
+
+        disabled={
+
+          paginaLogs >= totalPaginas
+
+        }
+
+        className="
+          px-4
+          py-2
+          rounded-lg
+          bg-slate-200
+          hover:bg-slate-300
+          disabled:opacity-50
+          disabled:cursor-not-allowed
+        "
+
+      >
+
+        Próxima →
+
+      </button>
+
+    </div>
+
+  </div>
+
+)}
 
     </div>
 

@@ -586,60 +586,41 @@ if (avaliacaoExistente) {
 
 } else {
 
-  avaliacao =
+ avaliacao =
 
-    await prisma.avaliacaoTAF.create({
+  await prisma.avaliacaoTAF.create({
 
-      data:
-        dadosAvaliacao,
+    data:
+      dadosAvaliacao,
 
-      include: {
+    include: {
 
-        militar: {
+      militar: {
 
-          include: {
+        include: {
 
-            postoGraduacao: true,
+          postoGraduacao: true,
 
-            curso: true,
+          curso: true,
 
-            subunidade: true,
+          subunidade: true,
 
-            om: true
+          om: true
 
-          }
-        },
+        }
+      },
 
-        chamada: {
+      chamada: {
 
-          include: {
+        include: {
 
-            campanha: true
+          campanha: true
 
-          }
         }
       }
-    });
-
-  await prisma.logAvaliacao.create({
-
-    data: {
-
-      avaliacaoId:
-        avaliacao.id,
-
-      usuarioId:
-        req.usuario.usuarioId,
-
-      acao:
-        "CADASTRO",
-
-      origem:
-        "WEB"
-
     }
-
   });
+
 
 }
 
@@ -1068,36 +1049,36 @@ return res.status(201).json(avaliacao);
 
     await prisma.logAvaliacao.create({
 
-      data: {
+  data: {
 
-        avaliacaoId: avaliacao.id,
+    avaliacaoId: avaliacao.id,
 
-        usuarioId: req.usuario.usuarioId,
+    usuarioId: req.usuario.usuarioId,
 
-        acao: "ATUALIZACAO",
+    acao: "ATUALIZACAO",
 
-        origem: "WEB"
-
-      }
-
-    });
-
-    res.json(avaliacao);
-
-  } catch (error) {
-
-    console.error(error);
-
-    res.status(500).json({
-
-      error:
-        "Erro ao atualizar avaliação."
-
-    });
+    origem: "WEB"
 
   }
 
-  }
+});
+
+res.json(avaliacao);
+
+} catch (error) {
+
+  console.error(error);
+
+  res.status(500).json({
+
+    error:
+      "Erro ao atualizar avaliação."
+
+  });
+
+}
+
+}
 
   export async function listarAvaliacoes(req, res) {
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 
 import api from "../../services/api";
 
@@ -23,6 +23,20 @@ export default function Militares() {
   const [militarSelecionado, setMilitarSelecionado] = useState(null);
 
   const [mensagem, setMensagem] = useState("");
+
+  const [arquivoImportacao, setArquivoImportacao] = useState(null);
+
+  const [importando, setImportando] = useState(false);
+
+  const [resultadoImportacao, setResultadoImportacao] = useState({
+
+    cadastrados: 0,
+
+    atualizados: 0,
+
+    inconsistencias: []
+
+  });
 
   const [cursos, setCursos] = useState([
     {
@@ -119,6 +133,352 @@ export default function Militares() {
       console.error("Mensagem:", error.response?.data);
 
       console.error(error);
+
+    }
+
+  }
+
+  async function importarMilitares() {
+
+    if (!arquivoImportacao) {
+
+      setMensagem(
+        "Selecione uma planilha para importar."
+      );
+
+      return;
+
+    }
+
+    setImportando(true);
+
+    setMensagem("");
+
+    try {
+
+      const dadosArquivo =
+        await arquivoImportacao.arrayBuffer();
+
+      const workbook =
+        XLSX.read(
+          dadosArquivo,
+          {
+            type: "array"
+          }
+        );
+
+      const nomeAba =
+        workbook.SheetNames.find(
+          (nome) =>
+            nome.trim().toLowerCase() ===
+            "militares"
+        );
+
+      if (!nomeAba) {
+
+        throw new Error(
+          'A aba "Militares" não foi encontrada na planilha.'
+        );
+
+      }
+
+      const planilha =
+        workbook.Sheets[nomeAba];
+
+      const linhas =
+        XLSX.utils.sheet_to_json(
+          planilha,
+          {
+            defval: ""
+          }
+        );
+
+      function converterDataPlanilha(valor) {
+
+        if (
+          valor === null ||
+          valor === undefined ||
+          valor === ""
+        ) {
+
+          return "";
+
+        }
+
+        // Excel pode entregar a data como número
+        if (typeof valor === "number") {
+
+          const data =
+            XLSX.SSF.parse_date_code(valor);
+
+          if (!data) {
+
+            return "";
+
+          }
+
+          const dia =
+            String(data.d).padStart(2, "0");
+
+          const mes =
+            String(data.m).padStart(2, "0");
+
+          const ano =
+            String(data.y);
+
+          return `${dia}/${mes}/${ano}`;
+
+        }
+
+        // Excel pode entregar como Date
+        if (valor instanceof Date) {
+
+          if (isNaN(valor.getTime())) {
+
+            return "";
+
+          }
+
+          const dia =
+            String(valor.getDate()).padStart(2, "0");
+
+          const mes =
+            String(
+              valor.getMonth() + 1
+            ).padStart(2, "0");
+
+          const ano =
+            String(valor.getFullYear());
+
+          return `${dia}/${mes}/${ano}`;
+
+        }
+
+        // Caso seja texto
+        const texto =
+          String(valor).trim();
+
+        if (
+          /^\d{2}\/\d{2}\/\d{4}$/.test(texto)
+        ) {
+
+          return texto;
+
+        }
+
+        if (
+          /^\d{2}-\d{2}-\d{4}$/.test(texto)
+        ) {
+
+          return texto.replaceAll("-", "/");
+
+        }
+
+        return texto;
+
+      }
+
+      if (linhas.length === 0) {
+
+        throw new Error(
+          "A planilha não possui militares para importar."
+        );
+
+      }
+
+      const militaresImportacao =
+        linhas.map((linha) => ({
+
+        nomeCompleto:
+          String(
+            linha["Nome Completo"] ?? ""
+          ).trim(),
+
+        pg:
+          String(
+            linha["PG"] ?? ""
+          ).trim(),
+
+        nomeGuerra:
+          String(
+            linha["Nome Guerra"] ?? ""
+          ).trim(),
+
+        segmento:
+          String(
+            linha["Segmento"] ?? ""
+          ).trim(),
+
+        curso:
+          String(
+            linha["Curso"] ?? ""
+          ).trim(),
+
+        dataNascimento:
+          converterDataPlanilha(
+            linha["Data Nascimento"]
+          ),
+
+        subunidade:
+          String(
+            linha["Subunidade"] ?? ""
+          ).trim()
+
+      }));
+
+
+      const response =
+        await api.post(
+          "/militares/importar",
+          {
+            militares:
+              militaresImportacao
+          }
+        );
+
+      const resultado =
+        response.data;
+
+      setResultadoImportacao({
+
+        cadastrados:
+          resultado.cadastrados || 0,
+
+        atualizados:
+          resultado.atualizados || 0,
+
+        inconsistencias:
+          resultado.inconsistencias || []
+
+      });
+
+      setMensagem(
+
+        `Importação concluída: ${
+
+          resultado.processados || 0
+
+        } processado(s), ${
+
+          resultado.cadastrados || 0
+
+        } cadastrado(s) e ${
+
+          resultado.atualizados || 0
+
+        } atualizado(s).`
+
+      );
+
+
+      if (
+
+        resultado.inconsistencias?.length
+
+      ) {
+
+        console.warn(
+
+          "INCONSISTÊNCIAS DA IMPORTAÇÃO:",
+
+          resultado.inconsistencias
+
+        );
+
+        alert(
+
+          `Importação concluída com ${
+
+            resultado.inconsistencias.length
+
+          } inconsistência(s).\n\n` +
+
+          resultado.inconsistencias
+
+            .map(
+
+              (item) =>
+
+                `Linha ${item.linha}: ${item.motivo}`
+
+            )
+
+            .join("\n")
+
+        );
+
+      } else {
+
+        alert(
+
+          `Importação concluída com sucesso!\n\n` +
+
+          `Processados: ${
+
+            resultado.processados || 0
+
+          }\n` +
+
+          `Cadastrados: ${
+
+            resultado.cadastrados || 0
+
+          }\n` +
+
+          `Atualizados: ${
+
+            resultado.atualizados || 0
+
+          }`
+
+        );
+
+      }
+
+
+      setArquivoImportacao(null);
+
+
+      const input =
+        document.querySelector(
+          'input[type="file"]'
+        );
+
+      if (input) {
+
+        input.value = "";
+
+      }
+
+
+      await carregarMilitares();
+
+    } catch (error) {
+
+      console.error(
+        "=== ERRO AO IMPORTAR MILITARES ==="
+      );
+
+      console.error(error);
+
+      console.error(
+        "Resposta:",
+        error.response?.data
+      );
+
+      setMensagem(
+
+        error.response?.data?.error ||
+
+        error.message ||
+
+        "Erro ao importar militares."
+
+      );
+
+    } finally {
+
+      setImportando(false);
 
     }
 
@@ -514,27 +874,49 @@ export default function Militares() {
 
       ["4. Nome Completo é obrigatório."],
 
-      ["5. PG deve conter a sigla (Ex.: Cel, Cap, ST, 3º Sgt, Sd EP...)."],
+      ["5. PG deve conter a sigla (Ex.: Cel, TC, Maj, Cap, 1º Ten, 2º Ten, Asp Of, ST, 1º Sgt, 2º Sgt, 3º Sgt, Cb, Sd EP, Sd EV)."],
 
       ["6. Segmento deve ser M ou F."],
 
-      ["7. Curso deve ser LEMB ou LEMS/LEMC/LEMCT."],
+      ["7. Curso deve ser LEMB ou LEMS que refere-se a LEMS/LEMC/LEMCT."],
 
       ["8. Data de Nascimento no formato DD/MM/AAAA."],
 
-      ["9. Subunidade deve ser exatamente como utilizada na OM."],
+      ["9. Subunidade deve ser a sigla utilizada na OM, em caixa alta, número sem ordinal, sem travessão e/ou underline, hífen como separador (Ex.: 1 CIA SUP, ESTADO-MAIOR)."],
 
-      ["10. Militares existentes serão atualizados pelo Nome Completo."],
-
-      ["11. Novos militares serão cadastrados automaticamente."],
-
-      ["12. Linhas com erro aparecerão na lista de inconsistências."]
+      ["10. Linhas com erro aparecerão na lista de inconsistências."]
 
     ];
 
     const wsInstrucoes =
 
       XLSX.utils.aoa_to_sheet(instrucoes);
+
+
+    // ==========================================================
+    // FORMATAÇÃO DA ABA INSTRUÇÕES
+    // ==========================================================
+
+    Object.keys(wsInstrucoes).forEach((celula) => {
+
+      if (celula.startsWith("!")) {
+
+        return;
+
+      }
+
+      wsInstrucoes[celula].s = {
+
+        font: {
+
+          bold: true
+
+        }
+
+      };
+
+    });
+
 
     XLSX.utils.book_append_sheet(
 
@@ -550,35 +932,116 @@ export default function Militares() {
 
     const militares = [[
 
-      "Nome Completo",
+  "NOME COMPLETO",
 
-      "PG",
+  "PG",
 
-      "Nome Guerra",
+  "NOME GUERRA",
 
-      "Segmento",
+  "SEGMENTO",
 
-      "Curso",
+  "CURSO",
 
-      "Data Nascimento",
+  "DATA NASCIMENTO",
 
-      "Subunidade"
+  "SUBUNIDADE"
 
-    ]];
+]];
 
-    const wsMilitares =
+const wsMilitares =
 
-      XLSX.utils.aoa_to_sheet(militares);
+  XLSX.utils.aoa_to_sheet(militares);
 
-    XLSX.utils.book_append_sheet(
+// ==========================================================
+// FORMATAÇÃO DO CABEÇALHO — ABA MILITARES
+// ==========================================================
 
-      workbook,
+const cabecalhoMilitares = [
 
-      wsMilitares,
+  "A1",
 
-      "Militares"
+  "B1",
 
-    );
+  "C1",
+
+  "D1",
+
+  "E1",
+
+  "F1",
+
+  "G1"
+
+];
+
+
+cabecalhoMilitares.forEach((celula) => {
+
+  wsMilitares[celula].s = {
+
+    font: {
+
+      bold: true
+
+    },
+
+    alignment: {
+
+      horizontal: "center",
+
+      vertical: "center"
+
+    }
+
+  };
+
+});
+
+// ==========================================================
+// LARGURA DAS COLUNAS — ABA MILITARES
+// ==========================================================
+
+wsMilitares["!cols"] = [
+
+  {
+    wpx: 412
+  },
+
+  {
+    wpx: 56
+  },
+
+  {
+    wpx: 206
+  },
+
+  {
+    wpx: 76
+  },
+
+  {
+    wpx: 65
+  },
+
+  {
+    wpx: 115
+  },
+
+  {
+    wpx: 149
+  }
+
+];
+
+XLSX.utils.book_append_sheet(
+
+  workbook,
+
+  wsMilitares,
+
+  "Militares"
+
+);
 
     XLSX.writeFile(
 
@@ -884,6 +1347,8 @@ async function excluirMilitar() {
           >
 
             <div className="font-bold">
+
+              {militar.postoGraduacao?.abreviacao ?? ""} |{" "}
 
               {militar.nomeGuerra}
 
@@ -1312,7 +1777,7 @@ async function excluirMilitar() {
 
       )}
 
-            {/* ABA IMPORTAR DADOS */}
+      {/* ABA IMPORTAR DADOS */}
 
       {abaAtiva === "importacao" && (
 
@@ -1335,6 +1800,15 @@ async function excluirMilitar() {
                 <input
                   type="file"
                   accept=".xlsx,.xls,.csv"
+                  onChange={(e) => {
+
+                    setArquivoImportacao(
+                      e.target.files?.[0] || null
+                    );
+
+                    setMensagem("");
+
+                  }}
                   className="
                     w-full
                     border
@@ -1362,19 +1836,30 @@ async function excluirMilitar() {
                 </button>
 
                 <button
-                  type="button"
-                  className="
-                    bg-green-700
-                    hover:bg-green-600
-                    text-white
-                    rounded-xl
-                    px-8
-                    py-3
-                    font-semibold
-                  "
-                >
-                  IMPORTAR
-                </button>
+                type="button"
+                onClick={importarMilitares}
+                disabled={
+                  !arquivoImportacao ||
+                  importando
+                }
+                className={`
+                  text-white
+                  rounded-xl
+                  px-8
+                  py-3
+                  font-semibold
+                  ${
+                    !arquivoImportacao ||
+                    importando
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-green-700 hover:bg-green-600"
+                  }
+                `}
+              >
+                {importando
+                  ? "IMPORTANDO..."
+                  : "IMPORTAR"}
+              </button>
 
               </div>
 
@@ -1382,43 +1867,33 @@ async function excluirMilitar() {
 
           </div>
 
-          {/* RESULTADO */}
+          <div className="flex justify-between">
 
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <span>Novos militares</span>
 
-            <h3 className="text-lg font-semibold mb-4">
+            <strong>
+              {resultadoImportacao.cadastrados}
+            </strong>
 
-              Resultado da Importação
+          </div>
 
-            </h3>
+          <div className="flex justify-between">
 
-            <div className="space-y-2">
+            <span>Militares atualizados</span>
 
-              <div className="flex justify-between">
+            <strong>
+              {resultadoImportacao.atualizados}
+            </strong>
 
-                <span>Novos militares</span>
+          </div>
 
-                <strong>0</strong>
+          <div className="flex justify-between">
 
-              </div>
+            <span>Inconsistências</span>
 
-              <div className="flex justify-between">
-
-                <span>Militares atualizados</span>
-
-                <strong>0</strong>
-
-              </div>
-
-              <div className="flex justify-between">
-
-                <span>Inconsistências</span>
-
-                <strong>0</strong>
-
-              </div>
-
-            </div>
+            <strong>
+              {resultadoImportacao.inconsistencias.length}
+            </strong>
 
           </div>
 
@@ -1438,10 +1913,53 @@ async function excluirMilitar() {
                 rounded-xl
                 p-4
                 text-slate-500
+                space-y-2
               "
             >
 
-              Nenhuma inconsistência encontrada.
+              {resultadoImportacao.inconsistencias.length === 0 ? (
+
+                <p>
+                  Nenhuma inconsistência encontrada.
+                </p>
+
+              ) : (
+
+                resultadoImportacao.inconsistencias.map(
+                  (item, index) => (
+
+                    <div
+                      key={index}
+                      className="
+                        border-b
+                        last:border-b-0
+                        pb-2
+                        last:pb-0
+                      "
+                    >
+
+                      <p className="font-semibold text-slate-700">
+
+                        Linha {item.linha}
+
+                        {item.nome
+                          ? ` — ${item.nome}`
+                          : ""}
+
+                      </p>
+
+                      <p className="text-red-600">
+
+                        {item.motivo}
+
+                      </p>
+
+                    </div>
+
+                  )
+                )
+
+              )}
 
             </div>
 

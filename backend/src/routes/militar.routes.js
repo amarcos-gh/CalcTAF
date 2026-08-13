@@ -7,7 +7,8 @@ import {
   criarMilitar,
   excluirMilitar,
   atualizarMilitar,
-  listarMilitares
+  listarMilitares,
+  importarMilitares
 } from "../controllers/militar.controller.js";
 
 const router = Router();
@@ -38,6 +39,13 @@ router.get(
   auth,
   autorizar("ADMINISTRADOR", "OPERADOR"),
   listarMilitares
+);
+
+router.post(
+  "/importar",
+  auth,
+  autorizar("ADMINISTRADOR", "OPERADOR"),
+  importarMilitares
 );
 
 export default router;

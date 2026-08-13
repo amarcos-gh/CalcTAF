@@ -30,6 +30,11 @@ enum OrigemLog {
   IMPORTACAO
 }
 
+enum TipoHistoricoColeta {
+  IMPORTACAO
+  EXPORTACAO
+}
+
 model OM {
   id          Int          @id @default(autoincrement())
   sigla       String
@@ -193,6 +198,8 @@ model Usuario {
 
   logs LogAvaliacao[]
 
+  historicoColetas HistoricoColeta[]
+
 }
 
 model LogAvaliacao {
@@ -210,6 +217,26 @@ model LogAvaliacao {
   createdAt DateTime @default(now())
 
   avaliacao AvaliacaoTAF @relation(fields: [avaliacaoId], references: [id])
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+}
+
+model HistoricoColeta {
+
+  id Int @id @default(autoincrement())
+
+  usuarioId Int
+
+  tipo TipoHistoricoColeta
+
+  arquivo String
+
+  quantidade Int?
+
+  origem OrigemLog @default(WEB)
+
+  createdAt DateTime @default(now())
 
   usuario Usuario @relation(fields: [usuarioId], references: [id])
 

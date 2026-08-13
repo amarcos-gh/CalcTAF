@@ -1,0 +1,1 @@
+C:/Users/USER/Documents/CalcTAF/instalador/runtime/postgresql/binarios/pgsql/bin/postgres.exe "-D" "instalador/runtime/postgresql/data" "-p" "55432"

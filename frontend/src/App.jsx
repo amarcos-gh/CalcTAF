@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+﻿import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import MainLayout from "./layouts/MainLayout";
 
@@ -19,6 +19,7 @@ import Relatorios from "./pages/Relatorios/Relatorios";
 import Configuracoes from "./pages/Configuracoes/Configuracoes";
 
 import RecuperarSenha from "./pages/RecuperarSenha/RecuperarSenha";
+import CadastroUsuario from "./pages/CadastroUsuario/CadastroUsuario";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -130,6 +131,15 @@ export default function App() {
           element={<AplicacaoColeta />}
 
         />
+
+        <Route
+
+          path="/cadastro-usuario"
+
+          element={<CadastroUsuario />}
+
+        />
+
 
         <Route
 

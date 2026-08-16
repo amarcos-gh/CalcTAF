@@ -40,6 +40,16 @@ export default function Coletas() {
 
   const [codigoAutenticacao, setCodigoAutenticacao] = useState("");
 
+  const [historicoColetas, setHistoricoColetas] = useState([]);
+
+  const [buscaHistorico, setBuscaHistorico] = useState("");
+
+  const [paginaHistorico, setPaginaHistorico] = useState(1);
+
+  const REGISTROS_HISTORICO_POR_PAGINA = 20;
+
+  const [carregandoHistorico, setCarregandoHistorico] = useState(false);
+
   // futuramente virá do login
   const omId = Number(localStorage.getItem("omId")) || 1;
 
@@ -245,6 +255,63 @@ export default function Coletas() {
 
   }
 
+  // =====================================================
+  // CARREGAR HISTÓRICO DE COLETAS
+  // =====================================================
+
+  async function carregarHistoricoColetas() {
+
+    try {
+
+      setCarregandoHistorico(true);
+
+      const { data } =
+        await api.get(
+          "/coleta/historico"
+        );
+
+      setHistoricoColetas(
+        Array.isArray(data)
+          ? data
+          : []
+      );
+
+      setPaginaHistorico(1);
+
+    }
+
+    catch (erro) {
+
+      console.error(
+        "Erro ao carregar histórico de coletas:",
+        erro
+      );
+
+      alert(
+        erro.response?.data?.error ||
+        "Erro ao buscar histórico de coletas."
+      );
+
+    }
+
+    finally {
+
+      setCarregandoHistorico(false);
+
+    }
+
+  }
+
+  useEffect(() => {
+
+    if (aba === "historico") {
+
+      carregarHistoricoColetas();
+
+    }
+
+  }, [aba]);
+
   function selecionar(id) {
 
     if (selecionados.includes(id)) {
@@ -302,6 +369,148 @@ export default function Coletas() {
     }
 
   }
+
+  useEffect(() => {
+
+    setPaginaHistorico(1);
+
+  }, [buscaHistorico]);  
+  
+   useEffect(() => {
+
+    if (aba === "historico") {
+      carregarHistoricoColetas();
+    }
+
+  }, [aba]);
+
+
+  async function carregarHistoricoColetas() {
+
+    try {
+
+      setCarregandoHistorico(true);
+
+      const { data } = await api.get(
+        "/coleta/historico"
+      );
+
+      setHistoricoColetas(
+        Array.isArray(data)
+          ? data
+          : []
+      );
+
+      setPaginaHistorico(1);
+
+    }
+
+    catch (erro) {
+
+      console.error(
+        "Erro ao carregar histórico de coletas:",
+        erro
+      );
+
+      alert(
+        erro.response?.data?.error ||
+        "Erro ao buscar histórico de coletas."
+      );
+
+    }
+
+    finally {
+
+      setCarregandoHistorico(false);
+
+    }
+
+  }
+
+
+  // =====================================================
+  // HISTÓRICO FILTRADO
+  // =====================================================
+
+  const historicoFiltrado =
+    useMemo(() => {
+
+      const termo =
+        buscaHistorico
+          .trim()
+          .toLowerCase();
+
+      if (!termo) {
+
+        return historicoColetas;
+
+      }
+
+      return historicoColetas.filter(
+        (registro) => {
+
+          const usuario =
+            registro.usuario?.nome
+              ?.toLowerCase() || "";
+
+          const email =
+            registro.usuario?.email
+              ?.toLowerCase() || "";
+
+          const arquivo =
+            registro.arquivo
+              ?.toLowerCase() || "";
+
+          const tipo =
+            registro.tipo
+              ?.toLowerCase() || "";
+
+          return (
+            usuario.includes(termo) ||
+            email.includes(termo) ||
+            arquivo.includes(termo) ||
+            tipo.includes(termo)
+          );
+
+        }
+      );
+
+    }, [
+      historicoColetas,
+      buscaHistorico
+    ]);
+
+
+  // =====================================================
+  // PAGINAÇÃO DO HISTÓRICO
+  // =====================================================
+
+  const totalPaginasHistorico =
+    Math.max(
+      1,
+      Math.ceil(
+        historicoFiltrado.length /
+          REGISTROS_HISTORICO_POR_PAGINA
+      )
+    );
+
+
+  const indiceInicialHistorico =
+    (paginaHistorico - 1) *
+    REGISTROS_HISTORICO_POR_PAGINA;
+
+
+  const indiceFinalHistorico =
+    indiceInicialHistorico +
+    REGISTROS_HISTORICO_POR_PAGINA;
+
+
+  const historicoPagina =
+    historicoFiltrado.slice(
+      indiceInicialHistorico,
+      indiceFinalHistorico
+    );
+
 
   return (
 
@@ -722,15 +931,336 @@ export default function Coletas() {
 
       {aba === "historico" && (
 
-        <div className="bg-white rounded-xl shadow p-6">
+        <div className="bg-white rounded-2xl shadow-lg p-4">
 
-          <h2 className="text-2xl font-bold text-green-800 mb-3">
-            Histórico
-          </h2>
+          {/* =================================================
+              CABEÇALHO
+          ================================================= */}
 
-          <p className="text-gray-600">
-            Em breve será exibido o histórico das coletas realizadas.
-          </p>
+          <div className="flex items-center justify-between mb-4">
+
+            <h2 className="text-base font-bold text-slate-800">
+              Registros
+            </h2>
+
+            <div className="flex items-center gap-2">
+
+              <input
+                type="text"
+                placeholder="Pesquisar..."
+                value={buscaHistorico}
+                onChange={(e) => {
+                  setBuscaHistorico(e.target.value);
+                  setPaginaHistorico(1);
+                }}
+                className="
+                  w-52
+                  border
+                  border-gray-700
+                  rounded-lg
+                  px-3
+                  py-1.5
+                  text-xs
+                  focus:outline-none
+                  focus:ring-1
+                  focus:ring-green-700
+                "
+              />
+
+              <button
+                type="button"
+                onClick={carregarHistoricoColetas}
+                disabled={carregandoHistorico}
+                className="
+                  px-3
+                  py-1.5
+                  rounded-lg
+                  bg-green-700
+                  text-white
+                  text-xs
+                  font-semibold
+                  hover:bg-green-800
+                  disabled:opacity-50
+                "
+              >
+                {carregandoHistorico
+                  ? "Atualizando..."
+                  : "Atualizar"}
+              </button>
+
+            </div>
+
+          </div>
+
+
+          {/* =================================================
+              CARREGANDO
+          ================================================= */}
+
+          {carregandoHistorico ? (
+
+            <div className="text-center py-8 text-xs text-gray-500">
+              Carregando histórico...
+            </div>
+
+          ) : historicoColetas.length === 0 ? (
+
+            <div className="text-center py-8 text-xs text-gray-500">
+              Nenhum registro de exportação ou importação encontrado.
+            </div>
+
+          ) : (
+
+            <>
+
+              {/* =================================================
+                  TABELA
+              ================================================= */}
+
+              <div className="overflow-x-auto">
+
+                <table className="w-full text-xs">
+
+                  <thead>
+
+                    <tr className="bg-green-700 text-white">
+
+                      <th className="px-2 py-1.5 text-left">
+                        Ação
+                      </th>
+
+                      <th className="px-2 py-1.5 text-left">
+                        Arquivo
+                      </th>
+
+                      <th className="px-2 py-1.5 text-center">
+                        Quantidade
+                      </th>
+
+                      <th className="px-2 py-1.5 text-left">
+                        Data/Hora
+                      </th>
+
+                      <th className="px-2 py-1.5 text-left">
+                        Usuário
+                      </th>
+
+                    </tr>
+
+                  </thead>
+
+
+                  <tbody>
+
+                    {historicoPagina.length === 0 ? (
+
+                      <tr>
+
+                        <td
+                          colSpan="5"
+                          className="
+                            text-center
+                            py-6
+                            text-xs
+                            text-gray-500
+                          "
+                        >
+                          Nenhum registro encontrado.
+                        </td>
+
+                      </tr>
+
+                    ) : (
+
+                      historicoPagina.map(
+                        (registro) => (
+
+                          <tr
+                            key={registro.id}
+                            className="
+                              border-b
+                              border-gray-300
+                              hover:bg-gray-50
+                            "
+                          >
+
+                            <td className="px-2 py-1">
+
+                              {registro.tipo ===
+                              "EXPORTACAO"
+                                ? "Exportação"
+                                : registro.tipo ===
+                                  "IMPORTACAO"
+                                ? "Importação"
+                                : registro.tipo}
+
+                            </td>
+
+
+                            <td
+                              className="
+                                px-2
+                                py-1
+                                font-medium
+                              "
+                            >
+
+                              {registro.arquivo || "-"}
+
+                            </td>
+
+
+                            <td
+                              className="
+                                px-2
+                                py-1
+                                text-center
+                              "
+                            >
+
+                              {registro.quantidade ?? "-"}
+
+                            </td>
+
+
+                            <td
+                              className="
+                                px-2
+                                py-1
+                                whitespace-nowrap
+                              "
+                            >
+
+                              {registro.createdAt
+                                ? new Date(
+                                    registro.createdAt
+                                  ).toLocaleString(
+                                    "pt-BR"
+                                  )
+                                : "-"}
+
+                            </td>
+
+
+                            <td className="px-2 py-1">
+
+                              {registro.usuario?.nome ||
+                                registro.usuario?.email ||
+                                "-"}
+
+                            </td>
+
+                          </tr>
+
+                        )
+                      )
+
+                    )}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+
+              {/* =================================================
+                  PAGINAÇÃO
+              ================================================= */}
+
+              <div
+                className="
+                  flex
+                  items-center
+                  justify-between
+                  mt-3
+                  text-xs
+                "
+              >
+
+                <button
+                  type="button"
+                  disabled={
+                    paginaHistorico <= 1 ||
+                    carregandoHistorico
+                  }
+                  onClick={() =>
+                    setPaginaHistorico(
+                      paginaHistorico - 1
+                    )
+                  }
+                  className="
+                    px-3
+                    py-1.5
+                    rounded-lg
+                    bg-slate-100
+                    text-slate-600
+                    disabled:opacity-40
+                    disabled:cursor-not-allowed
+                    hover:bg-slate-200
+                  "
+                >
+                  ← Anterior
+                </button>
+
+
+                <span className="text-slate-600">
+
+                  Página{" "}
+                  <strong>
+                    {paginaHistorico}
+                  </strong>{" "}
+                  de{" "}
+                  <strong>
+                    {Math.max(
+                      1,
+                      Math.ceil(
+                        historicoColetas.length /
+                          REGISTROS_HISTORICO_POR_PAGINA
+                      )
+                    )}
+                  </strong>
+
+                </span>
+
+
+                <button
+                  type="button"
+                  disabled={
+                    paginaHistorico >=
+                      Math.max(
+                        1,
+                        Math.ceil(
+                          historicoColetas.length /
+                            REGISTROS_HISTORICO_POR_PAGINA
+                        )
+                      ) ||
+                    carregandoHistorico
+                  }
+                  onClick={() =>
+                    setPaginaHistorico(
+                      paginaHistorico + 1
+                    )
+                  }
+                  className="
+                    px-3
+                    py-1.5
+                    rounded-lg
+                    bg-slate-100
+                    text-slate-600
+                    disabled:opacity-40
+                    disabled:cursor-not-allowed
+                    hover:bg-slate-200
+                  "
+                >
+                  Próxima →
+                </button>
+
+              </div>
+
+            </>
+
+          )}
 
         </div>
 

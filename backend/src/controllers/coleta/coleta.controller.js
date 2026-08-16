@@ -605,7 +605,7 @@ export async function exportarColeta(req, res) {
       });
 
     }
-    
+
     // =====================================================
     // DADOS DA COLETA
     // =====================================================
@@ -671,7 +671,7 @@ export async function exportarColeta(req, res) {
       });
 
     }
-    
+
     // =====================================================
     // DAQUI EM DIANTE COMEÇA A NOVA LÓGICA DE EXPORTAÇÃO
     // =====================================================
@@ -875,7 +875,7 @@ export async function exportarColeta(req, res) {
 
       avaliacaoPrimeiraChamada:
 
-        militar.avaliacoes.length > 0
+        militar.avaliacoes?.length > 0
 
           ? militar.avaliacoes[0]
 
@@ -989,6 +989,33 @@ export async function exportarColeta(req, res) {
 
     };
 
+    // =====================================================
+    // REGISTRA EXPORTAÇÃO NO HISTÓRICO
+    // =====================================================
+
+    await prisma.historicoColeta.create({
+
+      data: {
+
+        usuarioId:
+          req.usuario.usuarioId,
+
+        tipo:
+          "EXPORTACAO",
+
+        arquivo:
+          `Coleta_${numeroTAF}TAF_${numeroChamada}Chamada.ctaf`,
+
+        quantidade:
+          militares.length,
+
+        origem:
+          "WEB"
+
+      }
+
+    });
+
     return res.json({
 
       coleta,
@@ -997,17 +1024,17 @@ export async function exportarColeta(req, res) {
 
     });
 
-    } catch (error) {
+  } catch (error) {
 
-      console.error(error);
+    console.error(error);
 
-      return res.status(500).json({
+    return res.status(500).json({
 
-        error: "Erro ao exportar coleta."
+      error: "Erro ao exportar coleta."
 
-      });
+    });
 
-    }
+  }
 
 }
 
@@ -1079,7 +1106,7 @@ export async function importarResultados(req, res) {
 
     let importadas = 0;
 
-    for (const avaliacao of resultados.avaliacoes) {
+        for (const avaliacao of resultados.avaliacoes) {
 
       const chamada = await prisma.chamadaTAF.findUnique({
 
@@ -1089,7 +1116,8 @@ export async function importarResultados(req, res) {
 
             campanhaId: resultados.campanha.id,
 
-            numeroChamada: resultados.chamada.numeroChamada
+            numeroChamada:
+              resultados.chamada.numeroChamada
 
           }
 
@@ -1109,9 +1137,11 @@ export async function importarResultados(req, res) {
 
           militarId_chamadaId: {
 
-            militarId: avaliacao.militarId,
+            militarId:
+              avaliacao.militarId,
 
-            chamadaId: chamada.id
+            chamadaId:
+              chamada.id
 
           }
 
@@ -1119,61 +1149,87 @@ export async function importarResultados(req, res) {
 
         create: {
 
-          militarId: avaliacao.militarId,
+          militarId:
+            avaliacao.militarId,
 
-          chamadaId: chamada.id,
+          chamadaId:
+            chamada.id,
 
-          corrida: avaliacao.corrida,
+          corrida:
+            avaliacao.corrida,
 
-          mencaoCorrida: avaliacao.mencaoCorrida,
+          mencaoCorrida:
+            avaliacao.mencaoCorrida,
 
-          flexao: avaliacao.flexao,
+          flexao:
+            avaliacao.flexao,
 
-          mencaoFlexao: avaliacao.mencaoFlexao,
+          mencaoFlexao:
+            avaliacao.mencaoFlexao,
 
-          abdominal: avaliacao.abdominal,
+          abdominal:
+            avaliacao.abdominal,
 
-          mencaoAbdominal: avaliacao.mencaoAbdominal,
+          mencaoAbdominal:
+            avaliacao.mencaoAbdominal,
 
-          barra: avaliacao.barra,
+          barra:
+            avaliacao.barra,
 
-          mencaoBarra: avaliacao.mencaoBarra,
+          mencaoBarra:
+            avaliacao.mencaoBarra,
 
-          ppm: avaliacao.ppm,
+          ppm:
+            avaliacao.ppm,
 
-          mencaoPPM: avaliacao.mencaoPPM,
+          mencaoPPM:
+            avaliacao.mencaoPPM,
 
-          mencaoFinal: avaliacao.mencaoFinal,
+          mencaoFinal:
+            avaliacao.mencaoFinal,
 
-          situacao: avaliacao.status
+          situacao:
+            avaliacao.status
 
         },
 
         update: {
 
-          corrida: avaliacao.corrida,
+          corrida:
+            avaliacao.corrida,
 
-          mencaoCorrida: avaliacao.mencaoCorrida,
+          mencaoCorrida:
+            avaliacao.mencaoCorrida,
 
-          flexao: avaliacao.flexao,
+          flexao:
+            avaliacao.flexao,
 
-          mencaoFlexao: avaliacao.mencaoFlexao,
+          mencaoFlexao:
+            avaliacao.mencaoFlexao,
 
-          abdominal: avaliacao.abdominal,
+          abdominal:
+            avaliacao.abdominal,
 
-          mencaoAbdominal: avaliacao.mencaoAbdominal,
+          mencaoAbdominal:
+            avaliacao.mencaoAbdominal,
 
-          barra: avaliacao.barra,
+          barra:
+            avaliacao.barra,
 
-          mencaoBarra: avaliacao.mencaoBarra,
+          mencaoBarra:
+            avaliacao.mencaoBarra,
 
-          ppm: avaliacao.ppm,
+          ppm:
+            avaliacao.ppm,
 
-          mencaoPPM: avaliacao.mencaoPPM,
+          mencaoPPM:
+            avaliacao.mencaoPPM,
 
-          mencaoFinal: avaliacao.mencaoFinal,
+          mencaoFinal:
+            avaliacao.mencaoFinal,
 
-          situacao: avaliacao.status
+          situacao:
+            avaliacao.status
 
         }
 
@@ -1183,9 +1239,37 @@ export async function importarResultados(req, res) {
 
     }
 
+    // =====================================================
+    // REGISTRA IMPORTAÇÃO NO HISTÓRICO
+    // =====================================================
+
+    await prisma.historicoColeta.create({
+
+      data: {
+
+        usuarioId:
+          req.usuario.usuarioId,
+
+        tipo:
+          "IMPORTACAO",
+
+        arquivo:
+          "Resultado_Avaliacao.ctaf",
+
+        quantidade:
+          importadas,
+
+        origem:
+          "WEB"
+
+      }
+
+    });
+
     return res.json({
 
-      message: "Importação concluída.",
+      message:
+        "Importação concluída.",
 
       importadas
 
@@ -1193,13 +1277,118 @@ export async function importarResultados(req, res) {
 
   }
 
-  catch (error) {
+    catch (error) {
 
-    console.error(error);
+      console.error(error);
+
+      return res.status(500).json({
+
+        error:
+          "Erro ao importar resultados."
+
+      });
+
+    }
+
+  }
+
+  // =====================================================
+  // HISTÓRICO DE COLETAS
+  // =====================================================
+
+  export async function buscarHistorico(req, res) {
+
+    try {
+
+      // ==========================================
+      // LOCALIZA O USUÁRIO LOGADO
+      // ==========================================
+
+      const usuarioId = req.usuario?.usuarioId;
+
+      if (!usuarioId) {
+
+        return res.status(401).json({
+          error: "Usuário não autenticado."
+        });
+
+      }
+
+      const usuario = await prisma.usuario.findUnique({
+
+        where: {
+          id: Number(usuarioId)
+        },
+
+        select: {
+          id: true,
+          nome: true,
+          email: true,
+          omId: true
+        }
+
+      });
+
+      if (!usuario) {
+
+        return res.status(404).json({
+          error: "Usuário não encontrado."
+        });
+
+      }
+
+      // ==========================================
+      // BUSCA O HISTÓRICO DA OM DO USUÁRIO
+      // ==========================================
+
+      const historico =
+        await prisma.historicoColeta.findMany({
+
+          where: {
+
+            usuario: {
+              omId: usuario.omId
+            }
+
+          },
+
+          include: {
+
+            usuario: {
+
+              select: {
+
+                id: true,
+                nome: true,
+                email: true
+
+              }
+
+            }
+
+          },
+
+          orderBy: {
+
+            createdAt: "desc"
+
+          }
+
+        });
+
+      return res.json(historico);
+
+  } catch (error) {
+
+    console.error(
+      "ERRO AO BUSCAR HISTÓRICO DE COLETAS:",
+      error
+    );
 
     return res.status(500).json({
 
-      error: "Erro ao importar resultados."
+      error:
+        "Erro ao buscar histórico de coletas."
 
     });
 

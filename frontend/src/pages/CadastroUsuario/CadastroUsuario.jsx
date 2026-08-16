@@ -190,7 +190,7 @@ export default function CadastroUsuario() {
 
         alert(
 
-        "Conta criada com sucesso."
+        "Conta criada com sucesso. Seu cadastro está PENDENTE aguardando atribuição e ativação do perfil."
         );
 
         navigate("/");
@@ -263,7 +263,7 @@ export default function CadastroUsuario() {
             "
           >
 
-            Cadastro de novo operador do CalcTAF Web
+            Solicite a atribuição de perfil ADMINISTRADOR para o GERAL
 
           </p>
 

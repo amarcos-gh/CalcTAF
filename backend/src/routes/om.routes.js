@@ -71,9 +71,7 @@ router.put(
 
   autorizar(
 
-    "GERAL",
-
-    "ADMINISTRADOR"
+    "GERAL"
 
   ),
 

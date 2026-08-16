@@ -39,17 +39,20 @@ export default function MainLayout({
   const podeMilitares =
     isGeral ||
     perfil === "ADMINISTRADOR" ||
-    perfil === "OPERADOR";
+    perfil === "OPERADOR" ||
+    perfil === "AVALIADOR";
+
 
   const podeAvaliacoes =
     isGeral ||
     perfil === "ADMINISTRADOR" ||
     perfil === "AVALIADOR";
 
+
   const podeColetas =
     isGeral ||
-    perfil === "ADMINISTRADOR" ||
-    perfil === "AVALIADOR";
+    perfil === "ADMINISTRADOR";
+
 
   const podeRelatorios =
     isGeral ||
@@ -57,10 +60,11 @@ export default function MainLayout({
     perfil === "OPERADOR" ||
     perfil === "AVALIADOR";
 
+
   const podeConfiguracoes =
     isGeral ||
     perfil === "ADMINISTRADOR";
-
+  
   useEffect(() => {
 
     carregarDados();
@@ -187,104 +191,153 @@ return (
         <Link
           to={podeMilitares ? "/militares" : "#"}
           onClick={(e) => {
-            if (!podeMilitares) e.preventDefault();
+            if (!podeMilitares) {
+              e.preventDefault();
+            }
           }}
+          title={
+            podeMilitares
+              ? ""
+              : "Acesso não autorizado"
+          }
           className={`
             block
             rounded-xl
             p-3
-            ${!podeMilitares ? "opacity-40 cursor-not-allowed" : ""}
+            ${!podeMilitares ? "cursor-not-allowed" : ""}
             ${
               location.pathname === "/militares"
                 ? "bg-green-800 text-yellow-300 font-bold"
-                : "hover:bg-green-800"
+                : podeMilitares
+                  ? "hover:bg-green-800"
+                  : ""
             }
           `}
         >
-          👥 MILITARES {!podeMilitares && "🔒"}
+          👥 MILITARES
         </Link>
 
         <Link
           to={podeAvaliacoes ? "/avaliacoes" : "#"}
           onClick={(e) => {
-            if (!podeAvaliacoes) e.preventDefault();
+            if (!podeAvaliacoes) {
+              e.preventDefault();
+            }
           }}
+          title={
+            podeAvaliacoes
+              ? ""
+              : "Acesso não autorizado"
+          }
           className={`
             block
             rounded-xl
             p-3
-            ${!podeAvaliacoes ? "opacity-40 cursor-not-allowed" : ""}
+            ${!podeAvaliacoes ? "cursor-not-allowed" : ""}
             ${
               location.pathname === "/avaliacoes"
                 ? "bg-green-800 text-yellow-300 font-bold"
-                : "hover:bg-green-800"
+                : podeAvaliacoes
+                  ? "hover:bg-green-800"
+                  : ""
             }
           `}
         >
-          📝 AVALIAÇOES {!podeAvaliacoes && "🔒"}
+          📝 AVALIAÇÕES
         </Link>
 
         <button
+          type="button"
           onClick={() => {
-            if (podeColetas) navigate("/coletas");
+            if (podeColetas) {
+              navigate("/coletas");
+            }
           }}
+          title={
+            podeColetas
+              ? ""
+              : "Acesso não autorizado"
+          }
           className={`
             w-full
             text-left
             rounded-xl
             p-3
-            ${!podeColetas ? "opacity-40 cursor-not-allowed" : ""}
+            ${!podeColetas ? "cursor-not-allowed" : ""}
             ${
               location.pathname === "/coletas"
                 ? "bg-green-800 text-yellow-300 font-bold"
-                : "hover:bg-green-800"
+                : podeColetas
+                  ? "hover:bg-green-800"
+                  : ""
             }
           `}
         >
-          📥 COLETAS {!podeColetas && "🔒"}
+          📥 COLETAS
         </button>
 
         <button
+          type="button"
           onClick={() => {
-            if (podeRelatorios) navigate("/relatorios");
+            if (podeRelatorios) {
+              navigate("/relatorios");
+            }
           }}
+          title={
+            podeRelatorios
+              ? ""
+              : "Acesso não autorizado"
+          }
           className={`
             w-full
             text-left
             rounded-xl
             p-3
-            ${!podeRelatorios ? "opacity-40 cursor-not-allowed" : ""}
+            ${!podeRelatorios ? "cursor-not-allowed" : ""}
             ${
               location.pathname === "/relatorios"
                 ? "bg-green-800 text-yellow-300 font-bold"
-                : "hover:bg-green-800"
+                : podeRelatorios
+                  ? "hover:bg-green-800"
+                  : ""
             }
           `}
         >
-          📊 RELATÓRIOS {!podeRelatorios && "🔒"}
-        </button>        
-        
+          📊 RELATÓRIOS
+        </button>
+
         <button
+          type="button"
           onClick={() => {
-            if (podeConfiguracoes) navigate("/configuracoes");
+            if (podeConfiguracoes) {
+              navigate("/configuracoes");
+            }
           }}
+          title={
+            podeConfiguracoes
+              ? ""
+              : "Acesso não autorizado"
+          }
           className={`
             w-full
             text-left
             rounded-xl
             p-3
-            ${!podeConfiguracoes ? "opacity-40 cursor-not-allowed" : ""}
+            ${!podeConfiguracoes ? "cursor-not-allowed" : ""}
             ${
               location.pathname === "/configuracoes"
                 ? "bg-green-800 text-yellow-300 font-bold"
-                : "hover:bg-green-800"
+                : podeConfiguracoes
+                  ? "hover:bg-green-800"
+                  : ""
             }
           `}
         >
-          ⚙️ CONFIGURAÇÕES {!podeConfiguracoes && "🔒"}
+          ⚙️ CONFIGURAÇÕES
         </button>
 
         <button
+          type="button"
           onClick={() => {
             localStorage.clear();
             navigate("/");
@@ -303,20 +356,20 @@ return (
 
       </nav>
 
-  </aside>
+     </aside>
 
-<main
-  className="
-    layout-main
-    flex-1
-    p-6
-  "
->
+    <main
+      className="
+        layout-main
+        flex-1
+        p-6
+      "
+    >
 
-  {children}
+      {children}
 
-</main>
+    </main>
 
-</div>
-);
+    </div>
+  );
 }

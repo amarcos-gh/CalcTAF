@@ -23,7 +23,8 @@ export default function Configuracoes() {
     nome: "",
     email: "",
     senha: "",
-    perfil: "OPERADOR",
+    perfil: null,
+    status: "PENDENTE",
     omId: "",
     subunidade: ""
   });
@@ -36,6 +37,31 @@ export default function Configuracoes() {
   });
 
   const perfilLogado = localStorage.getItem("perfil");
+
+  function limparTextoOM(valor) {
+
+    let texto = valor.toUpperCase();
+
+    // Remove caracteres não permitidos
+    texto = texto.replace(
+      /[^A-ZÁÀÂÃÄÉÊËÍÓÔÕÖÚÜÇ0-9ºª -]/g,
+      ""
+    );
+
+    // Remove espaços duplos
+    texto = texto.replace(
+      / {2,}/g,
+      " "
+    );
+
+    // Remove hífens repetidos
+    texto = texto.replace(
+      /-{2,}/g,
+      "-"
+    );
+
+    return texto;
+  }
 
   useEffect(() => {
     carregarUsuarios();
@@ -118,8 +144,10 @@ export default function Configuracoes() {
       email: usuario.email,
       senha: "",
       perfil: usuario.perfil,
+      status: usuario.status,
       omId: String(usuario.omId),
       subunidade: usuario.subunidade || ""
+
     });
 
     setModalUsuario(true);
@@ -152,7 +180,8 @@ export default function Configuracoes() {
   }
 
   const usuariosFiltrados = useMemo(() => {
-    return usuarios.filter(
+
+    const filtrados = usuarios.filter(
       (usuario) =>
         usuario.nome
           .toLowerCase()
@@ -161,6 +190,29 @@ export default function Configuracoes() {
           .toLowerCase()
           .includes(pesquisaUsuario.toLowerCase())
     );
+
+    return [...filtrados].sort((a, b) => {
+
+      const nomeOMA =
+        a.om?.sigla ||
+        a.om?.nome ||
+        "";
+
+      const nomeOMB =
+        b.om?.sigla ||
+        b.om?.nome ||
+        "";
+
+      return nomeOMA.localeCompare(
+        nomeOMB,
+        "pt-BR",
+        {
+          sensitivity: "base"
+        }
+      );
+
+    });
+
   }, [usuarios, pesquisaUsuario]);
 
   const omsFiltradas = useMemo(() => {
@@ -187,6 +239,7 @@ export default function Configuracoes() {
         nome: formUsuario.nome,
         email: formUsuario.email,
         perfil: formUsuario.perfil,
+        status: formUsuario.status,
         omId: Number(formUsuario.omId),
         subunidade: formUsuario.subunidade
       };
@@ -254,6 +307,15 @@ export default function Configuracoes() {
   async function salvarOM() {
 
     try {
+
+      if (!/^\d{6}$/.test(formOM.codom)) {
+
+        alert(
+          "O CODOM deve conter exatamente 6 números."
+        );
+
+        return;
+      }
 
       if (omEditando) {
 
@@ -395,34 +457,58 @@ export default function Configuracoes() {
             Organizações Militares
           </button>
 
-        </div>
-
-        <button
-          type="button"
-          onClick={
-            aba === "usuarios"
-              ? novoUsuario
-              : novaOM
-          }
-          className="
-            px-5
-            py-2
-            bg-green-700
-            hover:bg-green-800
-            text-white
-            rounded-lg
-            font-semibold
-            transition
-          "
-        >
-
-          {aba === "usuarios"
-            ? "NOVO USUÁRIO"
-            : "NOVA OM"}
-
-        </button>
+        </div>        
 
       </div>
+
+      {/* NOVA OM */}
+
+      {
+        aba === "oms" &&
+        perfilLogado === "GERAL" && (
+
+          <div
+            className="
+              flex
+              justify-end
+              mb-3
+            "
+          >
+
+            <button
+  type="button"
+  onClick={() => {
+
+    setOmEditando(null);
+
+    setFormOM({
+      codom: "",
+      sigla: "",
+      cidade: "",
+      uf: ""
+    });
+
+    setModalOM(true);
+
+  }}
+  className="
+    px-5
+    py-2
+    bg-green-700
+    hover:bg-green-800
+    text-white
+    rounded-lg
+    font-semibold
+    transition
+  "
+>
+  NOVA OM
+</button>
+
+          </div>
+
+        )
+      }
 
       {/* PESQUISA */}
 
@@ -788,37 +874,83 @@ export default function Configuracoes() {
                     >
 
                       <button
-                        onClick={() =>
-                          editarOM(om)
+                        type="button"
+                        onClick={() => {
+
+                          if (perfilLogado !== "GERAL") {
+                            return;
+                          }
+
+                          editarOM(om);
+
+                        }}
+                        disabled={perfilLogado !== "GERAL"}
+                        title={
+                          perfilLogado === "GERAL"
+                            ? "Editar Organização Militar"
+                            : "Acesso restrito ao GERAL"
                         }
-                        className="
+                        className={`
                           px-3
                           py-1
                           rounded-lg
-                          bg-amber-500
-                          hover:bg-amber-600
                           text-white
                           text-xs
                           font-semibold
-                        "
+                          ${
+                            perfilLogado === "GERAL"
+                              ? `
+                                bg-amber-500
+                                hover:bg-amber-600
+                                cursor-pointer
+                              `
+                              : `
+                                bg-amber-500
+                                cursor-not-allowed
+                              `
+                          }
+                        `}
                       >
                         Editar
                       </button>
 
                       <button
-                        onClick={() =>
-                          excluirOM(om.id)
+                        type="button"
+                        onClick={() => {
+
+                          if (perfilLogado !== "GERAL") {
+                            return;
+                          }
+
+                          excluirOM(om.id);
+
+                        }}
+                        disabled={perfilLogado !== "GERAL"}
+                        title={
+                          perfilLogado === "GERAL"
+                            ? "Excluir Organização Militar"
+                            : "Acesso restrito ao GERAL"
                         }
-                        className="
+                        className={`
                           px-3
                           py-1
                           rounded-lg
-                          bg-red-600
-                          hover:bg-red-700
                           text-white
                           text-xs
                           font-semibold
-                        "
+                          ${
+                            perfilLogado === "GERAL"
+                              ? `
+                                bg-red-600
+                                hover:bg-red-700
+                                cursor-pointer
+                              `
+                              : `
+                                bg-red-600
+                                cursor-not-allowed
+                              `
+                          }
+                        `}
                       >
                         Excluir
                       </button>
@@ -881,16 +1013,35 @@ export default function Configuracoes() {
               </label>
 
               <input
-                type="text"
-                value={formUsuario.nome}
-                onChange={(e) =>
-                  setFormUsuario({
-                    ...formUsuario,
-                    nome: e.target.value
-                  })
-                }
-                className="w-full border rounded-lg p-2"
-              />
+  type="text"
+  value={formOM.sigla}
+  onChange={(e) => {
+
+    let valor = e.target.value.toUpperCase();
+
+    valor = valor.replace(
+      /[^A-ZÁÀÂÃÉÊÍÓÔÕÚÇ0-9ºª -]/g,
+      ""
+    );
+
+    valor = valor.replace(
+      / {2,}/g,
+      " "
+    );
+
+    valor = valor.replace(
+      /-{2,}/g,
+      "-"
+    );
+
+    setFormOM({
+      ...formOM,
+      sigla: valor
+    });
+
+  }}
+  className="w-full border rounded-lg p-2"
+/>
 
             </div>
 
@@ -914,31 +1065,29 @@ export default function Configuracoes() {
 
             </div>
 
-            <div>
+            {!usuarioEditando && (
 
-              <label className="block mb-1 font-semibold">
+              <div>
 
-                {usuarioEditando
+                <label className="block mb-1 font-semibold">
+                  Senha
+                </label>
 
-                  ? "Nova Senha (Opcional)"
+                <input
+                  type="password"
+                  value={formUsuario.senha}
+                  onChange={(e) =>
+                    setFormUsuario({
+                      ...formUsuario,
+                      senha: e.target.value
+                    })
+                  }
+                  className="w-full border rounded-lg p-2"
+                />
 
-                  : "Senha"}
+              </div>
 
-              </label>
-
-              <input
-                type="password"
-                value={formUsuario.senha}
-                onChange={(e) =>
-                  setFormUsuario({
-                    ...formUsuario,
-                    senha: e.target.value
-                  })
-                }
-                className="w-full border rounded-lg p-2"
-              />
-
-            </div>
+            )}
 
             <div>
 
@@ -947,43 +1096,82 @@ export default function Configuracoes() {
               </label>
 
               <select
-                value={formUsuario.perfil}
-                onChange={(e) => {
+                  value={formUsuario.perfil || ""}
+                  onChange={(e) => {
 
-                const perfil = e.target.value;
+                    const perfil = e.target.value;
 
-                setFormUsuario({
+                    setFormUsuario({
 
-                  ...formUsuario,
+                      ...formUsuario,
 
-                  perfil,
+                      perfil:
+                        perfil || null,
 
-                  subunidade:
+                      subunidade:
 
-                    perfil === "OPERADOR" ||
+                        perfil === "OPERADOR" ||
 
-                    perfil === "AVALIADOR"
+                        perfil === "AVALIADOR"
 
-                      ? formUsuario.subunidade
+                          ? formUsuario.subunidade
 
-                      : ""
+                          : ""
 
-                });
+                    });
 
-  if (perfil === "GERAL") {
+                  }}
+                  className="w-full border rounded-lg p-2"
+                >
 
-    setSubunidades([]);
+                  <option value="">
+                    SEM PERFIL
+                  </option>
 
-  }
+                  <option value="ADMINISTRADOR">
+                    ADMINISTRADOR
+                  </option>
 
-}}
+                  <option value="OPERADOR">
+                    OPERADOR
+                  </option>
+
+                  <option value="AVALIADOR">
+                    AVALIADOR
+                  </option>
+
+                </select>
+
+              </div>
+
+              <div>
+
+              <label className="block mb-1 font-semibold">
+                Status
+              </label>
+
+              <select
+                value={formUsuario.status}
+                onChange={(e) =>
+                  setFormUsuario({
+                    ...formUsuario,
+                    status: e.target.value
+                  })
+                }
                 className="w-full border rounded-lg p-2"
               >
 
-                <option value="GERAL">GERAL</option>
-                <option value="ADMINISTRADOR">ADMINISTRADOR</option>
-                <option value="OPERADOR">OPERADOR</option>
-                <option value="AVALIADOR">AVALIADOR</option>
+                <option value="ATIVO">
+                  ATIVO
+                </option>
+
+                <option value="PENDENTE">
+                  PENDENTE
+                </option>
+
+                <option value="BLOQUEADO">
+                  BLOQUEADO
+                </option>
 
               </select>
 
@@ -1146,7 +1334,18 @@ export default function Configuracoes() {
 
     {modalOM && (
 
-      <div className="modal-overlay">
+      <div
+        className="
+          fixed
+          inset-0
+          z-[9999]
+          flex
+          items-center
+          justify-center
+          bg-black/50
+          p-4
+        "
+      >
 
         <div
           className="
@@ -1179,13 +1378,21 @@ export default function Configuracoes() {
 
               <input
                 type="text"
+                inputMode="numeric"
+                maxLength={6}
                 value={formOM.codom}
-                onChange={(e) =>
+                onChange={(e) => {
+
+                  const valor = e.target.value
+                    .replace(/\D/g, "")
+                    .slice(0, 6);
+
                   setFormOM({
                     ...formOM,
-                    codom: e.target.value
-                  })
-                }
+                    codom: valor
+                  });
+
+                }}
                 className="w-full border rounded-lg p-2"
               />
 
@@ -1200,12 +1407,26 @@ export default function Configuracoes() {
               <input
                 type="text"
                 value={formOM.sigla}
-                onChange={(e) =>
+                onChange={(e) => {
+
+                  let valor = e.target.value.toUpperCase();
+
+                  valor = valor
+                    .replace(/[^A-Z0-9À-Úºª -]/g, "")
+                    .replace(/ {2,}/g, " ")
+                    .replace(/-{2,}/g, "-");
+
+                  valor = valor.replace(
+                    /(?!\d)/g,
+                    ""
+                  );
+
                   setFormOM({
                     ...formOM,
-                    sigla: e.target.value
-                  })
-                }
+                    sigla: valor
+                  });
+
+                }}
                 className="w-full border rounded-lg p-2"
               />
 
@@ -1223,7 +1444,7 @@ export default function Configuracoes() {
                 onChange={(e) =>
                   setFormOM({
                     ...formOM,
-                    cidade: e.target.value
+                    cidade: limparTextoOM(e.target.value)
                   })
                 }
                 className="w-full border rounded-lg p-2"
@@ -1241,12 +1462,22 @@ export default function Configuracoes() {
                 type="text"
                 maxLength={2}
                 value={formOM.uf}
-                onChange={(e) =>
+                onChange={(e) => {
+
+                  const valor = e.target.value
+                    .toUpperCase()
+                    .replace(
+                      /[^A-ZÁÀÂÃÄÉÊËÍÓÔÕÖÚÜÇ]/g,
+                      ""
+                    )
+                    .slice(0, 2);
+
                   setFormOM({
                     ...formOM,
-                    uf: e.target.value.toUpperCase()
-                  })
-                }
+                    uf: valor
+                  });
+
+                }}
                 className="w-full border rounded-lg p-2"
               />
 
@@ -1306,5 +1537,5 @@ export default function Configuracoes() {
 
   </div>
 
-);
+  );
 }

@@ -42,7 +42,7 @@ export default function App() {
         <Route
           path="/militares"
           element={
-            <ProtectedRoute permissoes={["ADMINISTRADOR", "OPERADOR"]}>
+            <ProtectedRoute permissoes={["ADMINISTRADOR", "OPERADOR", "AVALIADOR"]}>
               <MainLayout>
                 <Militares />
               </MainLayout>
@@ -64,7 +64,7 @@ export default function App() {
         <Route
           path="/coletas"
           element={
-            <ProtectedRoute permissoes={["ADMINISTRADOR", "AVALIADOR"]}>
+            <ProtectedRoute permissoes={["ADMINISTRADOR"]}>
               <MainLayout>
                 <Coletas />
               </MainLayout>

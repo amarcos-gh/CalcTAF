@@ -160,10 +160,7 @@ export async function criarUsuario(req, res) {
 
     if (
 
-      perfilLogado !== "GERAL"
-
-      &&
-
+      perfilLogado !== "GERAL" &&
       perfil === "GERAL"
 
     ) {
@@ -371,16 +368,7 @@ export async function atualizarUsuario(req, res) {
 
       });
 
-    if (
-      usuarioAtual.perfil === "GERAL" &&
-      perfilLogado !== "GERAL"
-    ) {
-      return res.status(403).json({
-        error: "Somente um usuário GERAL pode alterar outro usuário GERAL."
-      });
-    }
-
-    if (!usuarioAtual) {
+        if (!usuarioAtual) {
 
       return res.status(404).json({
 
@@ -392,15 +380,42 @@ export async function atualizarUsuario(req, res) {
 
     }
 
-    if (
+        if (
+          usuarioAtual.perfil === "GERAL" &&
+          perfilLogado !== "GERAL"
+        ) {
 
-      perfilLogado !== "GERAL"
+          return res.status(403).json({
 
-      &&
+            error:
 
-      usuarioAtual.omId !== omLogado
+              "Somente um usuário GERAL pode alterar outro usuário GERAL."
 
-    ) {
+          });
+
+        }
+
+        if (
+          perfilLogado === "ADMINISTRADOR" &&
+          usuarioAtual.perfil === "ADMINISTRADOR"
+        ) {
+
+          return res.status(403).json({
+
+            error:
+
+              "O ADMINISTRADOR não pode alterar outro ADMINISTRADOR. Solicite a atuação do GERAL."
+
+          });
+
+        }
+
+        if (
+
+          perfilLogado !== "GERAL" &&
+          usuarioAtual.omId !== omLogado
+
+        ) {
 
       return res.status(403).json({
 
@@ -414,10 +429,7 @@ export async function atualizarUsuario(req, res) {
 
     if (
 
-      perfilLogado !== "GERAL"
-
-      &&
-
+      perfilLogado !== "GERAL" &&
       perfil === "GERAL"
 
     ) {
@@ -437,6 +449,20 @@ export async function atualizarUsuario(req, res) {
       perfilLogado !== "GERAL"
 
     ) {
+
+    if (
+        Number(omId) !== Number(omLogado)
+      ) {
+
+        return res.status(403).json({
+
+          error:
+
+            "Você não pode alterar a Organização Militar deste usuário."
+
+        });
+
+      }
 
       omId = omLogado;
 
@@ -524,61 +550,170 @@ export async function atualizarUsuario(req, res) {
 
     }
 
-    const perfilAtualizado = perfil || usuarioAtual.perfil;
+        const perfilAtualizado =
+      perfil !== undefined
+        ? perfil
+        : usuarioAtual.perfil;
+
+    let statusAtualizado =
+      usuarioAtual.status;
+
+    // =====================================================
+    // USUÁRIO SEM PERFIL
+    // Somente o GERAL ou o ADMINISTRADOR da própria OM
+    // poderá atribuir OPERADOR ou AVALIADOR.
+    // =====================================================
+
+    if (
+      usuarioAtual.perfil === null
+    ) {
+
+      if (
+        perfilLogado !== "GERAL" &&
+        perfilLogado !== "ADMINISTRADOR"
+      ) {
+
+        return res.status(403).json({
+
+          error:
+            "Sem permissão para atribuir perfil a este usuário."
+
+        });
+
+      }
+
+      if (
+        perfilLogado === "ADMINISTRADOR" &&
+        perfilAtualizado !== "OPERADOR" &&
+        perfilAtualizado !== "AVALIADOR"
+      ) {
+
+        return res.status(403).json({
+
+          error:
+            "O ADMINISTRADOR pode atribuir somente os perfis OPERADOR e AVALIADOR."
+
+        });
+
+      }
+
+      statusAtualizado =
+        req.body.status ||
+        usuarioAtual.status;
+
+    }
+
+    // =====================================================
+    // GERAL
+    // Pode administrar qualquer perfil.
+    // Pode definir qualquer Status.
+    // =====================================================
+
+    else if (
+      perfilLogado === "GERAL"
+    ) {
+
+      statusAtualizado =
+        req.body.status ||
+        usuarioAtual.status;
+
+    }
+
+    // =====================================================
+    // ADMINISTRADOR
+    // Pode administrar somente OPERADOR e AVALIADOR
+    // da própria OM.
+    // =====================================================
+
+    else if (
+      perfilLogado === "ADMINISTRADOR"
+    ) {
+
+      if (
+        usuarioAtual.perfil === "OPERADOR" ||
+        usuarioAtual.perfil === "AVALIADOR"
+      ) {
+
+        if (
+          perfilAtualizado !== "OPERADOR" &&
+          perfilAtualizado !== "AVALIADOR"
+        ) {
+
+          return res.status(403).json({
+
+            error:
+              "O ADMINISTRADOR pode administrar somente OPERADOR e AVALIADOR."
+
+          });
+
+        }
+
+        statusAtualizado =
+          req.body.status ||
+          usuarioAtual.status;
+
+      }
+
+      else {
+
+        return res.status(403).json({
+
+          error:
+            "O ADMINISTRADOR não pode administrar este perfil."
+
+        });
+
+      }
+
+    }
 
     const dadosAtualizacao = {
 
-          nome:
+      nome:
 
-            nome
+        nome
+          ? nome.trim()
+          : usuarioAtual.nome,
 
-              ? nome.trim()
+      email:
 
-              : usuarioAtual.nome,
+        email
+          ? email.trim()
+          : usuarioAtual.email,
 
-          email:
+      perfil:
 
-            email
+        perfilAtualizado,
 
-              ? email.trim()
+      status:
 
-              : usuarioAtual.email,
+        statusAtualizado,
 
-          perfil:
+      omId:
 
-            perfilAtualizado,
+        perfilAtualizado === "GERAL"
 
-          status:
+          ? usuarioAtual.omId
 
-            perfilAtualizado === "GERAL"
+          : Number(omId),
 
-              ? "ATIVO"
+      subunidade:
 
-              : (req.body.status || usuarioAtual.status),
+        perfilAtualizado === "GERAL"
 
-          omId:
-            perfilAtualizado === "GERAL"
+          ? usuarioAtual.subunidade
 
-              ? usuarioAtual.omId
+          : (
 
-              : Number(omId),
+              subunidade !== undefined
 
-          subunidade:
-            perfilAtualizado === "GERAL"
+                ? subunidade.trim()
 
-              ? usuarioAtual.subunidade
+                : usuarioAtual.subunidade
 
-              : (
+            )
 
-                  subunidade !== undefined
-
-                    ? subunidade.trim()
-
-                    : usuarioAtual.subunidade
-                    
-                )
-
-        };
+    };
 
     if (
 
@@ -700,10 +835,7 @@ export async function excluirUsuario(req, res) {
 
     if (
 
-      perfilLogado !== "GERAL"
-
-      &&
-
+      perfilLogado !== "GERAL" &&
       usuario.omId !== omLogado
 
     ) {
@@ -720,10 +852,7 @@ export async function excluirUsuario(req, res) {
 
     if (
 
-      usuario.perfil === "GERAL"
-
-      &&
-
+      usuario.perfil === "GERAL" &&
       perfilLogado !== "GERAL"
 
     ) {

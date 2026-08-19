@@ -29,8 +29,8 @@ Source: ".\instalador\runtime\*"; DestDir: "{app}\runtime"; Flags: ignoreversion
 Source: ".\instalador\scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\CalcTAF Web"; Filename: "{app}\scripts\iniciar-calctaf.bat"; WorkingDir: "{app}"; IconFilename: "{app}\app\frontend\dist\favicon.svg"
-Name: "{userdesktop}\CalcTAF Web"; Filename: "{app}\scripts\iniciar-calctaf.bat"; WorkingDir: "{app}"
+Name: "{group}\CalcTAF Web"; Filename: "{app}\scripts\iniciar-calctaf.bat"; WorkingDir: "{app}"; IconFilename: "{app}\app\frontend\dist\CalcTAFWeb.ico"
+Name: "{userdesktop}\CalcTAF Web"; Filename: "{app}\scripts\iniciar-calctaf.bat"; WorkingDir: "{app}"; IconFilename: "{app}\app\frontend\dist\CalcTAFWeb.ico"
 
 [Run]
 Filename: "{app}\scripts\iniciar-calctaf.bat"; Description: "Iniciar o CalcTAF Web"; Flags: nowait postinstall skipifsilent

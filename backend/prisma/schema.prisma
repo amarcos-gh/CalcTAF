@@ -183,7 +183,7 @@ model Usuario {
   email String @unique
   senha String
 
-  perfil null
+  perfil PerfilUsuario?
 
   omId Int
   om   OM @relation(fields: [omId], references: [id])

@@ -356,17 +356,15 @@ if (subunidade) {
 
       where: {
 
-        nome:
+        nome: subunidade.trim(),
 
-          subunidade.trim()
+        omId: militarAtual.omId
+
       }
+
     });
 
-  if (
-
-    !subunidadeExistente
-
-  ) {
+  if (!subunidadeExistente) {
 
     subunidadeExistente =
 
@@ -374,17 +372,14 @@ if (subunidade) {
 
         data: {
 
-          nome:
+          nome: subunidade.trim(),
 
-            subunidade.trim(),
+          omId: militarAtual.omId
 
-          omId:
-
-            Number(
-              omId
-            )
         }
+
       });
+
   }
 
   subunidadeIdFinal =

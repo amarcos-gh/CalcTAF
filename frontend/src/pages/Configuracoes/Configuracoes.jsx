@@ -93,32 +93,36 @@ export default function Configuracoes() {
 
   async function carregarSubunidades(omId) {
 
+    console.log("=== CARREGAR SUBUNIDADES ===");
+    console.log("OM ID RECEBIDO:", omId);
+
     if (!omId) {
+
+      console.log("OM ID VAZIO!");
 
       setSubunidades([]);
 
       return;
-
     }
 
     try {
 
       const { data } = await api.get(
-
         `/subunidades?omId=${omId}`
-
       );
+
+      console.log("SUBUNIDADES RECEBIDAS:", data);
 
       setSubunidades(data);
 
     } catch (error) {
 
-      console.error(error);
+      console.error("ERRO AO CARREGAR SUBUNIDADES:", error);
+      console.error("RESPOSTA:", error.response?.data);
 
       setSubunidades([]);
 
     }
-
   }
 
   function novoUsuario() {
@@ -136,8 +140,21 @@ export default function Configuracoes() {
     setModalUsuario(true);
   }
 
-  function editarUsuario(usuario) {
-    setUsuarioEditando(usuario);
+  async function editarUsuario(usuario) {
+
+  console.log("=== EDITAR USUÁRIO ===");
+  console.log("ID:", usuario.id);
+  console.log("NOME:", usuario.nome);
+  console.log("EMAIL:", usuario.email);
+  console.log("PERFIL:", usuario.perfil);
+  console.log("OM:", usuario.omId);
+  console.log("SUBUNIDADE:", usuario.subunidade);
+
+  setUsuarioEditando(usuario);
+
+  const omId = usuario.omId
+      ? String(usuario.omId)
+      : "";
 
     setFormUsuario({
       nome: usuario.nome,
@@ -145,10 +162,18 @@ export default function Configuracoes() {
       senha: "",
       perfil: usuario.perfil,
       status: usuario.status,
-      omId: String(usuario.omId),
-      subunidade: usuario.subunidade || ""
-
+      omId,
+      subunidade:
+        usuario.perfil === "GERAL"
+          ? ""
+          : (usuario.subunidade || "")
     });
+
+    if (omId && usuario.perfil !== "GERAL") {
+      await carregarSubunidades(omId);
+    } else {
+      setSubunidades([]);
+    }
 
     setModalUsuario(true);
   }
@@ -1013,35 +1038,35 @@ export default function Configuracoes() {
               </label>
 
               <input
-  type="text"
-  value={formOM.sigla}
-  onChange={(e) => {
+                type="text"
+                value={formUsuario.nome}
+                onChange={(e) => {
 
-    let valor = e.target.value.toUpperCase();
+                  let valor = e.target.value.toUpperCase();
 
-    valor = valor.replace(
-      /[^A-ZÁÀÂÃÉÊÍÓÔÕÚÇ0-9ºª -]/g,
-      ""
-    );
+                  valor = valor.replace(
+                    /[^A-ZÁÀÂÃÉÊÍÓÔÕÚÇ0-9ºª -]/g,
+                    ""
+                  );
 
-    valor = valor.replace(
-      / {2,}/g,
-      " "
-    );
+                  valor = valor.replace(
+                    / {2,}/g,
+                    " "
+                  );
 
-    valor = valor.replace(
-      /-{2,}/g,
-      "-"
-    );
+                  valor = valor.replace(
+                    /-{2,}/g,
+                    "-"
+                  );
 
-    setFormOM({
-      ...formOM,
-      sigla: valor
-    });
+                  setFormUsuario({
+                    ...formUsuario,
+                    nome: valor
+                  });
 
-  }}
-  className="w-full border rounded-lg p-2"
-/>
+                }}
+                className="w-full border rounded-lg p-2"
+              />
 
             </div>
 
@@ -1057,7 +1082,7 @@ export default function Configuracoes() {
                 onChange={(e) =>
                   setFormUsuario({
                     ...formUsuario,
-                    email: e.target.value
+                    email: e.target.value.toUpperCase()
                   })
                 }
                 className="w-full border rounded-lg p-2"
@@ -1110,17 +1135,16 @@ export default function Configuracoes() {
 
                       subunidade:
 
-                        perfil === "OPERADOR" ||
+                        perfil === "GERAL"
 
-                        perfil === "AVALIADOR"
+                          ? ""
 
-                          ? formUsuario.subunidade
-
-                          : ""
+                          : formUsuario.subunidade
 
                     });
 
                   }}
+
                   className="w-full border rounded-lg p-2"
                 >
 
@@ -1232,32 +1256,25 @@ export default function Configuracoes() {
               </label>
 
               <select
-              value={formUsuario.subunidade}
-              disabled={
-                !formUsuario.omId ||
-
-                formUsuario.perfil === "GERAL" ||
-
-                formUsuario.perfil === "ADMINISTRADOR"
-              }
-              onChange={(e) =>
-                setFormUsuario({
-                  ...formUsuario,
-                  subunidade: e.target.value
-                })
-              }
-              className="w-full border rounded-lg p-2 disabled:bg-gray-100"
-            >
+                value={formUsuario.subunidade || ""}
+                disabled={
+                  !formUsuario.omId ||
+                  formUsuario.perfil === "GERAL"
+                }
+                onChange={(e) =>
+                  setFormUsuario({
+                    ...formUsuario,
+                    subunidade: e.target.value
+                  })
+                }
+                className="w-full border rounded-lg p-2 disabled:bg-gray-100"
+              >
 
               <option value="">
 
-                {formUsuario.perfil === "GERAL" ||
-
-                formUsuario.perfil === "ADMINISTRADOR"
-
-                    ? "Não se aplica"
-
-                    : "Selecione..."}
+                {formUsuario.perfil === "GERAL"
+                  ? "Não se aplica"
+                  : "Selecione..."}
 
               </option>
 

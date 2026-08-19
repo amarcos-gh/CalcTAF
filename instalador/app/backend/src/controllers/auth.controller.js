@@ -70,6 +70,10 @@ export async function cadastrarUsuario(req, res) {
 
             senhaHash,
 
+          status:
+
+            "PENDENTE",
+
           omId:
 
             Number(
@@ -81,7 +85,7 @@ export async function cadastrarUsuario(req, res) {
 
           om: true
         }
-      });
+    });
 
     return res.status(201).json(
 

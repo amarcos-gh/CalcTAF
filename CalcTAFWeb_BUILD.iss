@@ -29,11 +29,11 @@ Source: ".\instalador\runtime\*"; DestDir: "{app}\runtime"; Flags: ignoreversion
 Source: ".\instalador\scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\CalcTAF Web"; Filename: "{app}\scripts\iniciar-calctaf.bat"; WorkingDir: "{app}"; IconFilename: "{app}\app\frontend\dist\CalcTAFWeb.ico"
-Name: "{userdesktop}\CalcTAF Web"; Filename: "{app}\scripts\iniciar-calctaf.bat"; WorkingDir: "{app}"; IconFilename: "{app}\app\frontend\dist\CalcTAFWeb.ico"
+Name: "{group}\CalcTAF Web"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\scripts\iniciar-calctaf.vbs"""; WorkingDir: "{app}"; IconFilename: "{app}\app\frontend\dist\CalcTAFWeb.ico"
+Name: "{userdesktop}\CalcTAF Web"; Filename: "{sys}\wscript.exe"; Parameters: """{app}\scripts\iniciar-calctaf.vbs"""; WorkingDir: "{app}"; IconFilename: "{app}\app\frontend\dist\CalcTAFWeb.ico"
 
 [Run]
-Filename: "{app}\scripts\iniciar-calctaf.bat"; Description: "Iniciar o CalcTAF Web"; Flags: nowait postinstall skipifsilent
+Filename: "{sys}\wscript.exe"; Parameters: """{app}\scripts\iniciar-calctaf.vbs"""; Description: "Iniciar o CalcTAF Web"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"

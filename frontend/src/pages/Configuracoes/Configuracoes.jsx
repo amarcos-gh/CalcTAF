@@ -8,6 +8,8 @@ export default function Configuracoes() {
   const [usuarios, setUsuarios] = useState([]);
   const [oms, setOms] = useState([]);
 
+  const [solicitacoesAcesso, setSolicitacoesAcesso] = useState([]);
+
   const [subunidades, setSubunidades] = useState([]);
 
   const [pesquisaUsuario, setPesquisaUsuario] = useState("");
@@ -15,9 +17,13 @@ export default function Configuracoes() {
 
   const [modalUsuario, setModalUsuario] = useState(false);
   const [modalOM, setModalOM] = useState(false);
+  const [modalNovaSenha, setModalNovaSenha] = useState(false);
 
   const [usuarioEditando, setUsuarioEditando] = useState(null);
   const [omEditando, setOmEditando] = useState(null);
+  const [solicitacaoNovaSenha, setSolicitacaoNovaSenha] = useState(null);
+
+  const [novaSenha, setNovaSenha] = useState("");
 
   const [formUsuario, setFormUsuario] = useState({
     nome: "",
@@ -66,6 +72,7 @@ export default function Configuracoes() {
   useEffect(() => {
     carregarUsuarios();
     carregarOMs();
+    carregarSolicitacoesAcesso();
   }, []);
 
   async function carregarUsuarios() {
@@ -89,6 +96,130 @@ export default function Configuracoes() {
           "Erro ao carregar Organizações Militares."
       );
     }
+  }
+
+    async function carregarSolicitacoesAcesso() {
+
+    try {
+
+      const { data } = await api.get(
+        "/usuarios/solicitacoes-acesso"
+      );
+
+      setSolicitacoesAcesso(data);
+
+    } catch (error) {
+
+      console.error(error);
+
+      setSolicitacoesAcesso([]);
+
+    }
+
+  }
+
+  async function cancelarSolicitacaoAcesso(id) {
+
+    if (
+      !window.confirm(
+        "Deseja realmente cancelar esta solicitação?"
+      )
+    ) {
+
+      return;
+
+    }
+
+    try {
+
+      await api.put(
+        `/usuarios/solicitacoes-acesso/${id}/cancelar`
+      );
+
+      await carregarSolicitacoesAcesso();
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert(
+        error.response?.data?.error ||
+        "Erro ao cancelar solicitação."
+      );
+
+    }
+
+  }
+
+  function abrirModalNovaSenha(solicitacao) {
+
+    setSolicitacaoNovaSenha(
+      solicitacao
+    );
+
+    setNovaSenha("");
+
+    setModalNovaSenha(true);
+
+  }
+
+  async function atenderNovaSenha() {
+
+    if (!solicitacaoNovaSenha) {
+
+      return;
+
+    }
+
+    if (!novaSenha.trim()) {
+
+      alert(
+        "Informe a nova senha."
+      );
+
+      return;
+
+    }
+
+    try {
+
+      await api.put(
+
+        `/usuarios/solicitacoes-acesso/${solicitacaoNovaSenha.id}/atender-senha`,
+
+        {
+          senha:
+            novaSenha
+        }
+
+      );
+
+      setModalNovaSenha(false);
+
+      setSolicitacaoNovaSenha(null);
+
+      setNovaSenha("");
+
+      await carregarSolicitacoesAcesso();
+
+      alert(
+        "Nova senha definida com sucesso."
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      alert(
+
+        error.response?.data?.error ||
+
+        "Erro ao atender solicitação de nova senha."
+
+      );
+
+    }
+
   }
 
   async function carregarSubunidades(omId) {
@@ -501,34 +632,34 @@ export default function Configuracoes() {
           >
 
             <button
-  type="button"
-  onClick={() => {
+              type="button"
+              onClick={() => {
 
-    setOmEditando(null);
+                setOmEditando(null);
 
-    setFormOM({
-      codom: "",
-      sigla: "",
-      cidade: "",
-      uf: ""
-    });
+                setFormOM({
+                  codom: "",
+                  sigla: "",
+                  cidade: "",
+                  uf: ""
+                });
 
-    setModalOM(true);
+                setModalOM(true);
 
-  }}
-  className="
-    px-5
-    py-2
-    bg-green-700
-    hover:bg-green-800
-    text-white
-    rounded-lg
-    font-semibold
-    transition
-  "
->
-  NOVA OM
-</button>
+              }}
+              className="
+                px-5
+                py-2
+                bg-green-700
+                hover:bg-green-800
+                text-white
+                rounded-lg
+                font-semibold
+                transition
+              "
+            >
+              NOVA OM
+            </button>
 
           </div>
 
@@ -569,6 +700,250 @@ export default function Configuracoes() {
         />
 
       </div>
+
+      {/* SOLICITAÇÕES DE ACESSO */}
+
+      {aba === "usuarios" && solicitacoesAcesso.length > 0 && (
+
+        <div
+          className="
+            bg-white
+            rounded-2xl
+            border
+            shadow-sm
+            mb-5
+            overflow-hidden
+          "
+        >
+
+          <div
+            className="
+              px-4
+              py-3
+              bg-slate-50
+              border-b
+              flex
+              items-center
+              justify-between
+            "
+          >
+
+            <h2
+              className="
+                font-bold
+                text-slate-800
+              "
+            >
+              Solicitações de Acesso
+            </h2>
+
+            <span
+              className="
+                px-2
+                py-1
+                rounded-full
+                bg-red-100
+                text-red-700
+                text-xs
+                font-bold
+              "
+            >
+              {solicitacoesAcesso.length}
+            </span>
+
+          </div>
+
+          <div className="overflow-auto">
+
+            <table className="w-full">
+
+              <thead>
+
+                <tr className="border-b bg-white">
+
+                  <th
+                    className="
+                      px-3
+                      py-3
+                      text-left
+                      text-sm
+                      font-semibold
+                    "
+                  >
+                    E-mail
+                  </th>
+
+                  <th
+                    className="
+                      px-3
+                      py-3
+                      text-left
+                      text-sm
+                      font-semibold
+                    "
+                  >
+                    Solicitação
+                  </th>
+
+                  <th
+                    className="
+                      px-3
+                      py-3
+                      text-left
+                      text-sm
+                      font-semibold
+                    "
+                  >
+                    Data
+                  </th>
+
+                  <th
+                    className="
+                      px-3
+                      py-3
+                      text-center
+                      text-sm
+                      font-semibold
+                    "
+                  >
+                    Ações
+                  </th>
+
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                {solicitacoesAcesso.map((solicitacao) => (
+
+                  <tr
+                    key={solicitacao.id}
+                    className="
+                      border-b
+                      hover:bg-slate-50
+                      text-sm
+                    "
+                  >
+
+                    <td className="px-3 py-3">
+
+                      {solicitacao.email}
+
+                    </td>
+
+                    <td className="px-3 py-3">
+
+                      <span
+                        className="
+                          px-2
+                          py-1
+                          rounded-md
+                          bg-slate-100
+                          text-xs
+                          font-semibold
+                        "
+                      >
+
+                        {solicitacao.tipo === "NOVA_SENHA"
+
+                          ? "Nova senha"
+
+                          : "Ativação de perfil"}
+
+                      </span>
+
+                    </td>
+
+                    <td className="px-3 py-3">
+
+                      {new Date(
+                        solicitacao.createdAt
+                      ).toLocaleString(
+                        "pt-BR"
+                      )}
+
+                    </td>
+
+                                        <td
+                      className="
+                        px-3
+                        py-3
+                        text-center
+                      "
+                    >
+
+                      <div
+                        className="
+                          flex
+                          justify-center
+                          gap-2
+                        "
+                      >
+
+                        {solicitacao.tipo === "NOVA_SENHA" && (
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              abrirModalNovaSenha(
+                                solicitacao
+                              )
+                            }
+                            className="
+                              px-3
+                              py-1
+                              rounded-lg
+                              bg-green-700
+                              hover:bg-green-800
+                              text-white
+                              text-xs
+                              font-semibold
+                            "
+                          >
+                            Atender
+                          </button>
+
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            cancelarSolicitacaoAcesso(
+                              solicitacao.id
+                            )
+                          }
+                          className="
+                            px-3
+                            py-1
+                            rounded-lg
+                            bg-red-600
+                            hover:bg-red-700
+                            text-white
+                            text-xs
+                            font-semibold
+                          "
+                        >
+                          Cancelar
+                        </button>
+
+                      </div>
+
+                    </td>
+
+                  </tr>
+
+                ))}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      )}
 
       {/* TABELA */}
 
@@ -1542,6 +1917,146 @@ export default function Configuracoes() {
               "
             >
               Salvar
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    )}
+
+    {/* ===========================
+        MODAL NOVA SENHA
+    =========================== */}
+
+    {modalNovaSenha && solicitacaoNovaSenha && (
+
+      <div className="modal-overlay">
+
+        <div
+          className="
+            bg-white
+            rounded-2xl
+            shadow-xl
+            p-6
+            w-full
+            max-w-md
+          "
+        >
+
+          <h2
+            className="
+              text-xl
+              font-bold
+              mb-2
+              text-slate-800
+            "
+          >
+            Definir Nova Senha
+          </h2>
+
+          <p
+            className="
+              text-sm
+              text-slate-600
+              mb-5
+            "
+          >
+            Solicitação para:
+          </p>
+
+          <div
+            className="
+              bg-slate-100
+              rounded-lg
+              p-3
+              mb-5
+              font-semibold
+              text-slate-800
+              break-all
+            "
+          >
+            {solicitacaoNovaSenha.email}
+          </div>
+
+          <label
+            className="
+              block
+              mb-1
+              font-semibold
+            "
+          >
+            Nova senha
+          </label>
+
+          <input
+            type="password"
+            value={novaSenha}
+            onChange={(e) =>
+              setNovaSenha(
+                e.target.value
+              )
+            }
+            className="
+              w-full
+              border
+              rounded-lg
+              p-2
+              outline-none
+              focus:ring-2
+              focus:ring-green-700
+            "
+            placeholder="Digite a nova senha"
+          />
+
+          <div
+            className="
+              flex
+              justify-end
+              gap-3
+              mt-6
+            "
+          >
+
+            <button
+              type="button"
+              onClick={() => {
+
+                setModalNovaSenha(false);
+
+                setSolicitacaoNovaSenha(null);
+
+                setNovaSenha("");
+
+              }}
+              className="
+                px-5
+                py-2
+                rounded-lg
+                bg-slate-300
+                hover:bg-slate-400
+                font-semibold
+              "
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="button"
+              onClick={atenderNovaSenha}
+              className="
+                px-5
+                py-2
+                rounded-lg
+                bg-green-700
+                hover:bg-green-800
+                text-white
+                font-semibold
+              "
+            >
+              Definir Senha
             </button>
 
           </div>

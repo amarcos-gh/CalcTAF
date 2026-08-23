@@ -19,6 +19,17 @@ enum StatusUsuario {
   BLOQUEADO
 }
 
+enum TipoSolicitacaoAcesso {
+  NOVA_SENHA
+  ATIVACAO_PERFIL
+}
+
+enum StatusSolicitacaoAcesso {
+  PENDENTE
+  ATENDIDA
+  CANCELADA
+}
+
 enum AcaoLogAvaliacao {
   CADASTRO
   ATUALIZACAO
@@ -239,5 +250,23 @@ model HistoricoColeta {
   createdAt DateTime @default(now())
 
   usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+}
+
+model SolicitacaoAcesso {
+
+  id Int @id @default(autoincrement())
+
+  email String
+
+  tipo TipoSolicitacaoAcesso
+
+  status StatusSolicitacaoAcesso @default(PENDENTE)
+
+  token String? @unique
+
+  expiraEm DateTime?
+
+  createdAt DateTime @default(now())
 
 }

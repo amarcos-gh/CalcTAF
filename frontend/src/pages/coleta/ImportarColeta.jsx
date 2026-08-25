@@ -32,8 +32,6 @@ export default function ImportarColeta({
 
       const dados = JSON.parse(texto);
 
-console.log("ARQUIVO CTAF:", dados);
-
       // =====================================
       // VALIDAÇÕES
       // =====================================
@@ -131,6 +129,11 @@ console.log("ARQUIVO CTAF:", dados);
       // =====================================
       // ENTREGA A COLETA PARA O LOGIN
       // =====================================
+
+      localStorage.setItem(
+        "CalcTAF_Coleta_Pendente",
+        JSON.stringify(dados)
+      );
 
       event.target.value = "";
 

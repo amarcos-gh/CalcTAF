@@ -128,7 +128,15 @@ export default function App() {
 
           path="/coleta/aplicacao"
 
-          element={<AplicacaoColeta />}
+          element={
+
+            <ProtectedRoute exigirColeta>
+
+              <AplicacaoColeta />
+
+            </ProtectedRoute>
+
+          }
 
         />
 

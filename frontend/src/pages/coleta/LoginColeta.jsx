@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import {
   importarColeta,
   obterColeta,
+  encerrarColeta,
   listarAvaliacoes,
   loginBloqueado,
   incrementarTentativas,
@@ -94,12 +95,56 @@ export default function LoginColeta() {
   }
 
   // ======================================================
+  // RECUPERA COLETA SE O CELULAR RECARREGAR
+  // ======================================================
+
+  useEffect(() => {
+
+    const coletaPendente =
+      localStorage.getItem(
+        "CalcTAF_Coleta_Pendente"
+      );
+
+    if (!coletaPendente) {
+
+      return;
+
+    }
+
+    try {
+
+      const dados =
+        JSON.parse(coletaPendente);
+
+      if (
+        dados &&
+        typeof dados === "object"
+      ) {
+
+        carregarColeta(dados);
+
+      }
+
+    }
+
+    catch (erro) {
+
+      localStorage.removeItem(
+        "CalcTAF_Coleta_Pendente"
+      );
+
+    }
+
+  }, []);
+
+  // ======================================================
   // VERIFICA SESSÃO EM ANDAMENTO
   // ======================================================
 
   async function verificarSessaoEmAndamento() {
 
-    const coletaSalva = await obterColeta();
+    const coletaSalva =
+      await obterColeta();
 
     if (!coletaSalva) {
 
@@ -107,39 +152,49 @@ export default function LoginColeta() {
 
     }
 
-    setColeta(coletaSalva);
+    if (coletaSalva.encerrada === true) {
 
-    const avaliacoes = await listarAvaliacoes();
+      setColeta(null);
 
-    if (!avaliacoes || avaliacoes.length === 0) {
+      setResumoSessao(null);
+
+      setMostrarContinuacao(false);
 
       return;
 
     }
 
-    const total = coletaSalva.militares?.length || 0;
+    setColeta(coletaSalva);
 
-    const avaliados = avaliacoes.filter(
+    const avaliacoes =
+      await listarAvaliacoes();
 
-      a => a.status === STATUS_AVALIACAO.AVALIADO
+    const total =
+      coletaSalva.militares?.length || 0;
 
-    ).length;
+    const avaliados =
+      avaliacoes.filter(
+        (a) =>
+          a.status ===
+          STATUS_AVALIACAO.AVALIADO
+      ).length;
 
-    const pendentes = avaliacoes.filter(
-
-      a => a.status === STATUS_AVALIACAO.PENDENTE
-
-    ).length;
+    const pendentes =
+      avaliacoes.filter(
+        (a) =>
+          a.status ===
+          STATUS_AVALIACAO.PENDENTE
+      ).length;
 
     const naoRealizados =
-
       total -
-
       avaliados -
-
       pendentes;
 
-    setColetaConcluida(pendentes === 0);
+    setColetaConcluida(
+      total > 0 &&
+      avaliados === total
+    );
 
     setResumoSessao({
 
@@ -163,13 +218,13 @@ export default function LoginColeta() {
   // CONTINUAR SESSÃO
   // ======================================================
 
-  function continuarSessao() {
+    function continuarSessao() {
 
-    setMostrarContinuacao(false);
+      setMostrarContinuacao(false);
 
-    navigate("/coleta/aplicacao");
+      navigate("/coleta/aplicacao");
 
-  }
+    }
 
   // ======================================================
   // GERAR RESULTADOS
@@ -211,7 +266,10 @@ export default function LoginColeta() {
 
       versao: "1.0",
 
-      idResultados: crypto.randomUUID(),
+      idResultados:
+      `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2, 10)}`,
 
       geradoEm: new Date().toISOString(),
 
@@ -245,9 +303,11 @@ export default function LoginColeta() {
 
   async function gerarArquivoResultados() {
 
-    const coleta = await obterColeta();
+    const coleta =
+      await obterColeta();
 
-    const avaliacoes = await listarAvaliacoes();
+    const avaliacoes =
+      await listarAvaliacoes();
 
     const resultados = {
 
@@ -255,137 +315,170 @@ export default function LoginColeta() {
 
       versao: "1.0",
 
-      idResultados: crypto.randomUUID(),
+      idResultados:
+        `${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2, 10)}`,
 
-      geradoEm: new Date().toISOString(),
+      geradoEm:
+        new Date().toISOString(),
 
-      om: coleta.om,
+      om:
+        coleta.om,
 
-      subunidade: coleta.subunidade,
+      subunidade:
+        coleta.subunidade,
 
-      campanha: coleta.campanha,
+      campanha:
+        coleta.campanha,
 
-      chamada: coleta.chamada,
+      chamada:
+        coleta.chamada,
 
-      avaliador: coleta.avaliador,
+      avaliador:
+        coleta.avaliador,
 
-      militares: coleta.militares.length,
+      militares:
+        coleta.militares.length,
 
-      avaliacoes: avaliacoes.map((avaliacao) => {
+      avaliacoes:
+        avaliacoes.map(
+          (avaliacao) => {
 
-        const militar = coleta.militares.find(
+            const militar =
+              coleta.militares.find(
+                (m) =>
+                  m.id ===
+                  avaliacao.militarId
+              );
 
-          (m) => m.id === avaliacao.militarId
+            return {
 
-        );
+              ...avaliacao,
 
-        return {
+              nomeGuerra:
+                militar?.nomeGuerra ??
+                "",
 
-          ...avaliacao,
+              nomeCompleto:
+                militar?.nomeCompleto ??
+                militar?.nome ??
+                "",
 
-          nomeGuerra: militar?.nomeGuerra ?? "",
+              postoGraduacao:
+                militar?.postoGraduacao?.abreviacao ??
+                militar?.postoGraduacao ??
+                "",
 
-          nomeCompleto:
+              curso:
+                militar?.curso?.codigo ??
+                militar?.curso ??
+                "",
 
-          militar?.nomeCompleto ??
+              subunidade:
+                militar?.subunidade?.nome ??
+                militar?.subunidade ??
+                "",
 
-          militar?.nome ??
+              segmento:
+                militar?.segmento ??
+                ""
 
-          "",
+            };
 
-          postoGraduacao:
-
-            militar?.postoGraduacao?.abreviacao ??
-
-            militar?.postoGraduacao ??
-
-            "",
-
-            curso:
-
-              militar?.curso?.codigo ??
-
-              militar?.curso ??
-
-              "",
-
-          subunidade:
-
-            militar?.subunidade?.nome ??
-
-            militar?.subunidade ??
-
-            "",
-
-          segmento:
-
-            militar?.segmento ?? ""
-
-        };
-
-      })
+          }
+        )
 
     };
 
-    const blob = new Blob(
+    const blob =
+      new Blob(
 
-      [
+        [
+          JSON.stringify(
+            resultados,
+            null,
+            2
+          )
+        ],
 
-        JSON.stringify(
-
-          resultados,
-
-          null,
-
-          2
-
-        )
-
-      ],
-
-      {
-
-        type: "application/json"
-
-      }
+        {
+          type:
+            "application/octet-stream"
+        }
 
     );
 
-    const url = URL.createObjectURL(blob);
+    const url =
+      URL.createObjectURL(
+        blob
+      );
 
-    const link = document.createElement("a");
+    const link =
+      document.createElement(
+        "a"
+      );
 
     const nomeArquivo =
-
       `Resultados_${
-
         coleta.subunidade?.abreviacao ||
-
         coleta.subunidade?.nome ||
-
         coleta.subunidade
-
       }_${
-
         coleta.campanha.ano
-
       }_${
-
         coleta.campanha.numeroTAF
-
       }TAF_${
-
         coleta.chamada.numeroChamada
-
       }Chamada.ctaf`;
 
-    link.href = url;
+    link.href =
+      url;
 
-    link.download = nomeArquivo;
+    link.download =
+      nomeArquivo;
+
+    document.body.appendChild(
+      link
+    );
 
     link.click();
 
-    URL.revokeObjectURL(url);
+    link.remove();
+
+    URL.revokeObjectURL(
+      url
+    );
+
+    await encerrarColeta();
+
+    setMostrarGerarResultados(
+      false
+    );
+
+    setMostrarContinuacao(
+      false
+    );
+
+    setResumoSessao(
+      null
+    );
+
+    setColeta(
+      null
+    );
+
+    setCodigo(
+      ""
+    );
+
+    setMensagem(
+      ""
+    );
+
+    setProgresso(
+      0
+    );
 
   }
 
@@ -528,6 +621,10 @@ export default function LoginColeta() {
         setProgresso(50);
 
         await importarColeta(coleta);
+
+        localStorage.removeItem(
+          "CalcTAF_Coleta_Pendente"
+        );
 
         await new Promise(resolve => setTimeout(resolve, 150));
 
@@ -1011,11 +1108,22 @@ export default function LoginColeta() {
 
                 onClick={async () => {
 
-                  setMostrarGerarResultados(false);
+  setMostrarGerarResultados(false);
 
-                  await gerarArquivoResultados();
+  try {
 
-                }}
+    await gerarArquivoResultados();
+
+  } catch (erro) {
+
+    alert(
+      erro?.message ||
+      "Erro ao gerar o arquivo de resultados."
+    );
+
+  }
+
+}}
 
                 className="flex-1 bg-green-700 hover:bg-green-800 text-white rounded-xl py-2 font-semibold"
 

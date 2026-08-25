@@ -1,34 +1,20 @@
-const CACHE_NAME = "calctaf-campo-v1";
+const CACHE_NAME = "calctaf-campo-v2";
 
-self.addEventListener("fetch", (event) => {
+const APP_SHELL = [
+  "/coleta/login",
+  "/index.html",
+  "/manifest.webmanifest",
+  "/icon/logo_192.png",
+  "/icon/logo_512.png"
+];
 
-  if (event.request.url.includes(":3000")) {
+self.addEventListener("install", (event) => {
 
-    return;
+  event.waitUntil(
 
-  }
-
-  event.respondWith(
-
-    caches.match(event.request)
-
-      .then((response) => {
-
-        if (response) {
-
-          return response;
-
-        }
-
-        return fetch(event.request);
-
-      })
-
-      .catch(() => {
-
-        return fetch(event.request);
-
-      })
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
 
   );
 
@@ -38,23 +24,109 @@ self.addEventListener("activate", (event) => {
 
   event.waitUntil(
 
-    caches.keys().then((cacheNames) =>
+    caches.keys()
+      .then((cacheNames) =>
 
-      Promise.all(
+        Promise.all(
 
-        cacheNames.map((cacheName) => {
+          cacheNames.map((cacheName) => {
 
-          if (cacheName !== CACHE_NAME) {
+            if (cacheName !== CACHE_NAME) {
 
-            return caches.delete(cacheName);
+              return caches.delete(cacheName);
 
-          }
+            }
 
-        })
+          })
+
+        )
 
       )
+      .then(() => self.clients.claim())
 
-    )
+  );
+
+});
+
+self.addEventListener("fetch", (event) => {
+
+  const request = event.request;
+
+  if (request.method !== "GET") {
+
+    return;
+
+  }
+
+  const url = new URL(request.url);
+
+  if (url.origin !== self.location.origin) {
+
+    return;
+
+  }
+
+  event.respondWith(
+
+    caches.match(request)
+      .then((cachedResponse) => {
+
+        if (cachedResponse) {
+
+          return cachedResponse;
+
+        }
+
+        return fetch(request)
+          .then((response) => {
+
+            if (
+              response &&
+              response.status === 200 &&
+              response.type === "basic"
+            ) {
+
+              const responseClone =
+                response.clone();
+
+              caches.open(CACHE_NAME)
+                .then((cache) => {
+
+                  cache.put(
+                    request,
+                    responseClone
+                  );
+
+                });
+
+            }
+
+            return response;
+
+          })
+          .catch(() => {
+
+            if (
+              request.mode === "navigate"
+            ) {
+
+              return caches.match(
+                "/coleta/login"
+              );
+
+            }
+
+            return new Response(
+              "",
+              {
+                status: 503,
+                statusText: "Offline"
+              }
+            );
+
+          });
+
+      })
 
   );
 

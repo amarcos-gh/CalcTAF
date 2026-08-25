@@ -1297,77 +1297,79 @@ export default function Coletas() {
       setCarregando(true);
 
       const { data } = await api.get(
-
-      "/coleta/exportar",
-
-      {
-
-        params: {
-
-          omId,
-
-          numeroTAF,
-
-          numeroChamada,
-
-          subunidadeId: subunidadeSelecionada,
-
-          militares: selecionados.join(",")
-
+        "/coleta/exportar",
+        {
+          params: {
+            omId,
+            numeroTAF,
+            numeroChamada,
+            subunidadeId: subunidadeSelecionada,
+            militares: selecionados.join(",")
+          }
         }
+      );
+      
+      const subunidadeNome =
+        subunidades.find(
+          (sub) =>
+            String(sub.id) ===
+            String(subunidadeSelecionada)
+        )?.nome || "SUBUNIDADE";
 
-      }
+      const nomeSubunidade =
+        subunidadeNome
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-zA-Z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "");
 
-    );
+      const nomeArquivo =
+        `CalcTAF_${new Date().getFullYear()}_${nomeSubunidade}_${numeroTAF}TAF_${numeroChamada}Chamada.ctaf`;
 
       const blob = new Blob(
-
         [
-
           JSON.stringify(
-
             data.coleta,
-
             null,
-
             2
-
           )
-
         ],
-
         {
-
-          type: "application/json"
-
+          type: "application/octet-stream"
         }
-
       );
 
-      const url = window.URL.createObjectURL(blob);
+      const url =
+        window.URL.createObjectURL(blob);
 
-      const link = document.createElement("a");
+      const link =
+        document.createElement("a");
 
-      link.href = url;
+      link.href =
+        url;
 
       link.download =
-        `Coleta_${numeroTAF}TAF_${numeroChamada}Chamada.ctaf`;
+        nomeArquivo;
 
-      document.body.appendChild(link);
+      document.body.appendChild(
+        link
+      );
 
       link.click();
 
       link.remove();
 
-      window.URL.revokeObjectURL(url);
-
-      setCodigoAutenticacao(
-
-        data.codigoAutenticacao
-
+      window.URL.revokeObjectURL(
+        url
       );
 
-      setModalCodigoAberto(true);
+      setCodigoAutenticacao(
+        data.codigoAutenticacao
+      );
+
+      setModalCodigoAberto(
+        true
+      );      
 
     }
 

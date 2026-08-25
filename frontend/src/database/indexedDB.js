@@ -325,6 +325,8 @@ export async function importarColeta(dados) {
 
       ...dados,
 
+      encerrada: false,
+
       importadoEm: new Date().toISOString()
 
     });
@@ -450,6 +452,71 @@ export async function obterColeta() {
     };
 
   });
+
+}
+
+// ======================================================
+// ENCERRAR COLETA
+// ======================================================
+
+export async function encerrarColeta() {
+
+  const coleta =
+    await obterColeta();
+
+  if (!coleta) {
+
+    return false;
+
+  }
+
+  coleta.encerrada = true;
+
+  const db =
+    await abrirBanco();
+
+  return new Promise(
+    (resolve, reject) => {
+
+      const tx =
+        db.transaction(
+          STORES.COLETA,
+          "readwrite"
+        );
+
+      const store =
+        tx.objectStore(
+          STORES.COLETA
+        );
+
+      store.put(coleta);
+
+      tx.oncomplete = () => {
+
+        db.close();
+
+        resolve(true);
+
+      };
+
+      tx.onerror = () => {
+
+        db.close();
+
+        reject(tx.error);
+
+      };
+
+      tx.onabort = () => {
+
+        db.close();
+
+        reject(tx.error);
+
+      };
+
+    }
+  );
 
 }
 

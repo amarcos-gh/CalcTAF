@@ -1,11 +1,14 @@
-const CACHE_NAME = "calctaf-campo-v2";
+const CACHE_NAME = "calctaf-campo-v4";
+
+const BASE_URL =
+  self.registration.scope;
 
 const APP_SHELL = [
-  "/coleta/login",
-  "/index.html",
-  "/manifest.webmanifest",
-  "/icon/logo_192.png",
-  "/icon/logo_512.png"
+  BASE_URL,
+  `${BASE_URL}index.html`,
+  `${BASE_URL}manifest.webmanifest`,
+  `${BASE_URL}icon/logo_192.png`,
+  `${BASE_URL}icon/logo_512.png`
 ];
 
 self.addEventListener("install", (event) => {
@@ -13,8 +16,18 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
 
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
+
+      .then((cache) =>
+
+        cache.addAll(APP_SHELL)
+
+      )
+
+      .then(() =>
+
+        self.skipWaiting()
+
+      )
 
   );
 
@@ -25,24 +38,34 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
 
     caches.keys()
+
       .then((cacheNames) =>
 
         Promise.all(
 
           cacheNames.map((cacheName) => {
 
-            if (cacheName !== CACHE_NAME) {
+            if (
+              cacheName !== CACHE_NAME
+            ) {
 
-              return caches.delete(cacheName);
+              return caches.delete(
+                cacheName
+              );
 
             }
+
+            return null;
 
           })
 
         )
 
       )
-      .then(() => self.clients.claim())
+
+      .then(() =>
+        self.clients.claim()
+      )
 
   );
 
@@ -50,17 +73,24 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
 
-  const request = event.request;
+  const request =
+    event.request;
 
-  if (request.method !== "GET") {
+  if (
+    request.method !== "GET"
+  ) {
 
     return;
 
   }
 
-  const url = new URL(request.url);
+  const url =
+    new URL(request.url);
 
-  if (url.origin !== self.location.origin) {
+  if (
+    url.origin !==
+    self.location.origin
+  ) {
 
     return;
 
@@ -69,6 +99,7 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
 
     caches.match(request)
+
       .then((cachedResponse) => {
 
         if (cachedResponse) {
@@ -78,6 +109,7 @@ self.addEventListener("fetch", (event) => {
         }
 
         return fetch(request)
+
           .then((response) => {
 
             if (
@@ -89,7 +121,10 @@ self.addEventListener("fetch", (event) => {
               const responseClone =
                 response.clone();
 
-              caches.open(CACHE_NAME)
+              caches.open(
+                CACHE_NAME
+              )
+
                 .then((cache) => {
 
                   cache.put(
@@ -104,6 +139,7 @@ self.addEventListener("fetch", (event) => {
             return response;
 
           })
+
           .catch(() => {
 
             if (
@@ -111,7 +147,7 @@ self.addEventListener("fetch", (event) => {
             ) {
 
               return caches.match(
-                "/coleta/login"
+                BASE_URL
               );
 
             }

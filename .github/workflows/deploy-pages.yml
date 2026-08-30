@@ -31,7 +31,7 @@ jobs:
 
       - name: Instalar dependências
         working-directory: frontend
-        run: npm ci
+        run: npm ci --include=optional
 
       - name: Gerar aplicação
         working-directory: frontend

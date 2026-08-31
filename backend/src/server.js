@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
+import https from "https";
 import { fileURLToPath } from "url";
 
 import authRoutes from "./routes/auth.routes.js";
@@ -68,6 +70,20 @@ app.use("/campanhas", campanhaRoutes);
 
 app.use("/avaliacoes", avaliacaoRoutes);
 
+// =====================================================
+// CALCTAF CAMPO
+// /coleta        -> Frontend / LoginColeta
+// /coleta/*      -> API protegida
+// =====================================================
+
+app.get("/coleta", (req, res) => {
+
+  res.sendFile(
+    path.join(frontendDist, "index.html")
+  );
+
+});
+
 app.use("/coleta", coletaRoutes);
 
 app.use("/importacao", importacaoRoutes);
@@ -94,14 +110,22 @@ app.use((req, res, next) => {
 
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
-app.listen(PORT, () => {
+const httpsOptions = {
+  key: fs.readFileSync(
+    path.resolve(__dirname, "../../certs/calctaf-key.pem")
+  ),
+
+  cert: fs.readFileSync(
+    path.resolve(__dirname, "../../certs/calctaf.pem")
+  ),
+};
+
+https.createServer(httpsOptions, app).listen(PORT, () => {
 
   console.log(
-
-    `Servidor rodando na porta ${PORT}`
-
+    `Servidor HTTPS rodando na porta ${PORT}`
   );
 
 });

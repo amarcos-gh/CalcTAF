@@ -30,3 +30,5 @@ Thumbs.db
 
 # PostgreSQL runtime
 instalador/runtime/postgresql/data/postmaster.pid
+# Certificados HTTPS locais
+certs/

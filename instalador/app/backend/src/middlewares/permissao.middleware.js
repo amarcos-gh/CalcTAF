@@ -2,6 +2,14 @@ export default function autorizar(...perfisPermitidos) {
 
   return (req, res, next) => {
 
+    console.log(
+      "AUTORIZAÇÃO:",
+      req.method,
+      req.originalUrl,
+      "perfil:",
+      req.usuario?.perfil
+    );
+
     if (!req.usuario) {
 
       return res.status(401).json({

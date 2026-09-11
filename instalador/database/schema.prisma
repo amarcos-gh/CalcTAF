@@ -146,6 +146,7 @@ model AvaliacaoTAF {
   mencaoPPM String  @default("NR")
 
   mencaoFinal String @default("NR")
+  suficiencia String @default("")
   situacao    String @default("PENDENTE")
 
   createdAt DateTime @default(now())

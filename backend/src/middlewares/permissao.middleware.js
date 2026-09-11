@@ -17,6 +17,13 @@ export default function autorizar(...perfisPermitidos) {
 
     }
 
+    console.log(
+      "PERMISSÃO:",
+      req.usuario.perfil,
+      "PERFIS PERMITIDOS:",
+      perfisPermitidos
+    );
+
     if (!perfisPermitidos.includes(req.usuario.perfil)) {
 
       return res.status(403).json({

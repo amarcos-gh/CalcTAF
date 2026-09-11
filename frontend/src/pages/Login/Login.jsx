@@ -100,28 +100,7 @@ export default function Login() {
         response.data.codom
       );
 
-      const perfil = response.data.perfil;
-
-      switch (perfil) {
-
-        case "GERAL":
-        case "ADMINISTRADOR":
-          navigate("/configuracoes");
-          break;
-
-        case "OPERADOR":
-          navigate("/militares");
-          break;
-
-        case "AVALIADOR":
-          navigate("/avaliacoes");
-          break;
-
-        default:
-          navigate("/");
-          break;
-
-      }
+      navigate("/militares");
 
     } catch (error) {
 

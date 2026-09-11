@@ -42,7 +42,9 @@ export default function Avaliacoes() {
 
     mencaoPPM: "--",
 
-    mencaoFinal: "--"
+    mencaoFinal: "--",
+
+   suficiencia: ""
 
   });
 
@@ -191,7 +193,9 @@ export default function Avaliacoes() {
 
             mencaoPPM: "--",
 
-            mencaoFinal: "--"
+            mencaoFinal: "--",
+
+           suficiencia: ""
 
           });
 
@@ -415,6 +419,117 @@ setAvaliacoes(
     }
   }
 
+  async function excluirAvaliacao() {
+
+    if (!avaliacaoSelecionada?.id) {
+
+      alert("Nenhuma avaliação selecionada.");
+
+      return;
+
+    }
+
+    const confirmar = window.confirm(
+
+      "Deseja realmente excluir esta avaliação?"
+
+    );
+
+    if (!confirmar) {
+
+      return;
+
+    }
+
+    try {
+
+      const resposta = await fetch(
+
+        `/avaliacoes/${avaliacaoSelecionada.id}`,
+
+        {
+
+          method: "DELETE",
+
+          headers: {
+
+            Authorization:
+              `Bearer ${localStorage.getItem("token")}`
+
+          }
+
+        }
+
+      );
+
+      const dados =
+        await resposta.json();
+
+      if (!resposta.ok) {
+
+        throw new Error(
+
+          dados.error ||
+          "Erro ao excluir avaliação."
+
+        );
+
+      }
+
+      alert(
+        "Avaliação excluída com sucesso."
+      );
+
+            /*
+      * Limpa a tela
+      */
+
+      setAvaliacaoSelecionada(null);
+
+      setForm({
+
+        corrida: "",
+        flexao: "",
+        abdominal: "",
+        barra: "",
+        ppm: ""
+
+      });
+
+      setResultadoTempoReal({
+
+        mencaoCorrida: "--",
+        mencaoFlexao: "--",
+        mencaoAbdominal: "--",
+        mencaoBarra: "--",
+        mencaoPPM: "--",
+        mencaoFinal: "--",
+        suficiencia: ""
+
+      });
+
+      /*
+      * Recarrega os dados do banco
+      */
+
+      await carregarAvaliacoes();
+
+    } catch (error) {
+
+      console.error(
+        "ERRO AO EXCLUIR AVALIAÇÃO:",
+        error
+      );
+
+      alert(
+        error.message ||
+        "Erro ao excluir avaliação."
+      );
+
+    }
+
+  }
+
   async function carregarHistorico() {
 
     try {
@@ -544,23 +659,25 @@ setAvaliacoes(
     // AVALIAÇÃO DA CHAMADA ATUAL
     // =====================================================
 
-    const avaliacaoExistente = avaliacoes.find((a) => {
-
-      return (
-
-        a.militarId === militar.id &&
-
-        a.chamadaId === Number(form.chamadaId)
-
+    const respostaAvaliacoes =
+      await api.get(
+        `/avaliacoes?omId=${localStorage.getItem("omId")}`
       );
 
-    });
+    const avaliacaoExistente =
+      respostaAvaliacoes.data.find((a) => {
+
+        return (
+          Number(a.militarId) === Number(militar.id) &&
+          Number(a.chamadaId) === Number(form.chamadaId)
+        );
+
+      });
 
     if (
         avaliacaoExistente &&
-        avaliacaoExistente.mencaoFinal &&
         avaliacaoExistente.mencaoFinal !== "NR"
-      ) {
+    ) {
 
       mostrarMensagem("Militar já avaliado nesta chamada.");
 
@@ -1467,7 +1584,9 @@ return (
 
                                 mencaoPPM: "--",
 
-                                mencaoFinal: "--"
+                                mencaoFinal: "--",
+
+                               suficiencia: ""
 
                             });
 
@@ -1824,18 +1943,26 @@ return (
 
                       </div>
 
-                      <div className="flex justify-end mt-8">
+                      <div className="flex w-full justify-between items-center mt-8">
 
-                          <button
-                              type="submit"
-                              className="bg-green-700 hover:bg-green-800 text-white font-semibold px-8 py-3 rounded-xl transition"
-                          >
+                        <button
+                            type="button"
+                            onClick={excluirAvaliacao}
+                            className="bg-red-600 hover:bg-red-700
+                            text-white font-semibold px-8 py-3 rounded-xl transition"
+                        >
+                            Excluir Avaliação
+                        </button>
 
-                              Salvar Avaliação
+                        <button
+                            type="submit"
+                            className="bg-green-700 hover:bg-green-800
+                            text-white font-semibold px-8 py-3 rounded-xl transition"
+                        >
+                            Salvar Avaliação
+                        </button>
 
-                          </button>
-
-                      </div>
+                    </div>
 
                   </div>
 
@@ -1929,21 +2056,44 @@ return (
 
                         </div>
 
-                          <hr className="my-5"/>
+                        <hr className="my-5"/>
 
-                          <div className="text-center">
+                          <div className="grid grid-cols-2 gap-4 text-center">
 
-                              <div className="text-sm text-gray-500">
-
+                              {/* ============================
                                   MENÇÃO FINAL
+                              ============================ */}
+
+                              <div>
+
+                                  <div className="text-sm text-gray-500">
+                                      MENÇÃO FINAL
+                                  </div>
+
+                                  <div
+                                      className={`text-3xl font-bold mt-3 ${mencaoColor(resultadoTempoReal.mencaoFinal)}`}
+                                  >
+                                      {resultadoTempoReal.mencaoFinal || "--"}
+                                  </div>
 
                               </div>
 
-                              <div
-                                  className={`text-5xl font-bold mt-2 ${mencaoColor(resultadoTempoReal.mencaoFinal)}`}
-                              >
 
-                                  {resultadoTempoReal.mencaoFinal || "--"}
+                              {/* ============================
+                                  SUFICIÊNCIA
+                              ============================ */}
+
+                              <div>
+
+                                  <div className="text-sm text-gray-500">
+                                      SUFICIÊNCIA
+                                  </div>
+
+                                  <div
+                                      className={`text-3xl font-bold mt-3 ${mencaoColor(resultadoTempoReal.suficiencia)}`}
+                                  >
+                                      {resultadoTempoReal.suficiencia || "--"}
+                                  </div>
 
                               </div>
 

@@ -8,6 +8,8 @@ import AplicacaoColeta from "./pages/coleta/AplicacaoColeta";
 
 import Login from "./pages/Login/Login";
 
+import TelaInicioDescanso from "./components/TelaInicioDescanso";
+
 import Militares from "./pages/Militares/Militares";
 
 import Avaliacoes from "./pages/Avaliacoes/Avaliacoes";
@@ -19,6 +21,7 @@ import Relatorios from "./pages/Relatorios/Relatorios";
 import Configuracoes from "./pages/Configuracoes/Configuracoes";
 
 import RecuperarSenha from "./pages/RecuperarSenha/RecuperarSenha";
+
 import CadastroUsuario from "./pages/CadastroUsuario/CadastroUsuario";
 
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -29,135 +32,116 @@ export default function App() {
 
     <BrowserRouter>
 
-      <Routes>
+      <TelaInicioDescanso>
 
-        <Route
+        <Routes>
 
-          path="/"
+          <Route
 
-          element={<Login />}
+            path="/"
 
-        />
+            element={<Login />}
 
-        <Route
-          path="/militares"
-          element={
-            <ProtectedRoute permissoes={["ADMINISTRADOR", "OPERADOR", "AVALIADOR"]}>
-              <MainLayout>
-                <Militares />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
+          />
 
-        <Route
-          path="/avaliacoes"
-          element={
-            <ProtectedRoute permissoes={["ADMINISTRADOR", "AVALIADOR"]}>
-              <MainLayout>
-                <Avaliacoes />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/militares"
+            element={
+              <ProtectedRoute permissoes={["ADMINISTRADOR", "OPERADOR", "AVALIADOR"]}>
+                <MainLayout>
+                  <Militares />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/coletas"
-          element={
-            <ProtectedRoute permissoes={["ADMINISTRADOR"]}>
-              <MainLayout>
-                <Coletas />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/avaliacoes"
+            element={
+              <ProtectedRoute permissoes={["ADMINISTRADOR", "AVALIADOR"]}>
+                <MainLayout>
+                  <Avaliacoes />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/relatorios"
-          element={
-            <ProtectedRoute
-              permissoes={[
-                "ADMINISTRADOR",
-                "OPERADOR",
-                "AVALIADOR"
-              ]}
-            >
-              <MainLayout>
-                <Relatorios />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
+          <Route
+            path="/coletas"
+            element={
+              <ProtectedRoute permissoes={["ADMINISTRADOR"]}>
+                <MainLayout>
+                  <Coletas />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
 
-        <Route
-          path="/configuracoes"
-          element={
-            <ProtectedRoute permissoes={["ADMINISTRADOR"]}>
-              <MainLayout>
-                <Configuracoes />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        
-        <Route
+          <Route
+            path="/relatorios"
+            element={
+              <ProtectedRoute
+                permissoes={[
+                  "ADMINISTRADOR",
+                  "OPERADOR",
+                  "AVALIADOR"
+                ]}
+              >
+                <MainLayout>
+                  <Relatorios />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
 
-          path="/recuperar-senha"
+          <Route
+            path="/configuracoes"
+            element={
+              <ProtectedRoute permissoes={["ADMINISTRADOR"]}>
+                <MainLayout>
+                  <Configuracoes />
+                </MainLayout>
+              </ProtectedRoute>
+            }
+          />
 
-          element={<RecuperarSenha />}
+          <Route
+            path="/recuperar-senha"
+            element={<RecuperarSenha />}
+          />
 
-        />
+          <Route
+            path="/coleta/login"
+            element={<LoginColeta />}
+          />
 
-        <Route
+          <Route
+            path="/coleta"
+            element={<Navigate to="/coleta/login" />}
+          />
 
-          path="/coleta/login"
+          <Route
+            path="/coleta/aplicacao"
+            element={
+              <ProtectedRoute exigirColeta>
+                <AplicacaoColeta />
+              </ProtectedRoute>
+            }
+          />
 
-          element={<LoginColeta />}
+          <Route
+            path="/cadastro-usuario"
+            element={<CadastroUsuario />}
+          />
 
-        />
+          <Route
+            path="*"
+            element={<Navigate to="/" />}
+          />
 
-        <Route
+        </Routes>
 
-          path="/coleta"
-
-          element={<Navigate to="/coleta/login" />}
-
-        />
-
-        <Route
-
-          path="/coleta/aplicacao"
-
-          element={
-
-            <ProtectedRoute exigirColeta>
-
-              <AplicacaoColeta />
-
-            </ProtectedRoute>
-
-          }
-
-        />
-
-        <Route
-
-          path="/cadastro-usuario"
-
-          element={<CadastroUsuario />}
-
-        />
-
-
-        <Route
-
-          path="*"
-
-          element={<Navigate to="/" />}
-
-        />
-
-      </Routes>
+      </TelaInicioDescanso>
 
     </BrowserRouter>
 

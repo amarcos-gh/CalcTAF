@@ -37,7 +37,7 @@ router.delete(
 router.get(
   "/",
   auth,
-  autorizar("ADMINISTRADOR", "OPERADOR"),
+  autorizar("ADMINISTRADOR", "OPERADOR", "AVALIADOR"),
   listarMilitares
 );
 

@@ -7,6 +7,8 @@ import {
   criarAvaliacao,
 
   atualizarAvaliacao,
+  
+  excluirAvaliacao,
 
   listarAvaliacoes,
 
@@ -45,6 +47,16 @@ router.put(
   auth,
 
   atualizarAvaliacao
+
+);
+
+router.delete(
+
+  "/:id",
+
+  auth,
+
+  excluirAvaliacao
 
 );
 

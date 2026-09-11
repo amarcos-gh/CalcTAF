@@ -46,11 +46,12 @@ export default function Configuracoes() {
 
   function limparTextoOM(valor) {
 
-    let texto = valor.toUpperCase();
+    let texto = valor;
 
-    // Remove caracteres não permitidos
+    // Permite letras maiúsculas e minúsculas,
+    // acentos, espaço e hífen.
     texto = texto.replace(
-      /[^A-ZÁÀÂÃÄÉÊËÍÓÔÕÖÚÜÇ0-9ºª -]/g,
+      /[^A-Za-zÁÀÂÃÄÉÊËÍÓÔÕÖÚÜÇáàâãäéêëíóôõöúüç -]/g,
       ""
     );
 
@@ -1457,7 +1458,7 @@ export default function Configuracoes() {
                 onChange={(e) =>
                   setFormUsuario({
                     ...formUsuario,
-                    email: e.target.value.toUpperCase()
+                    email: e.target.value.toLowerCase()
                   })
                 }
                 className="w-full border rounded-lg p-2"
@@ -1801,17 +1802,14 @@ export default function Configuracoes() {
                 value={formOM.sigla}
                 onChange={(e) => {
 
-                  let valor = e.target.value.toUpperCase();
+                  let valor = e.target.value;
 
                   valor = valor
-                    .replace(/[^A-Z0-9À-Úºª -]/g, "")
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^A-Za-z0-9ºª -]/g, "")
                     .replace(/ {2,}/g, " ")
                     .replace(/-{2,}/g, "-");
-
-                  valor = valor.replace(
-                    /(?!\d)/g,
-                    ""
-                  );
 
                   setFormOM({
                     ...formOM,

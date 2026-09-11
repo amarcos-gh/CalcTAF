@@ -1,10 +1,10 @@
-const CACHE_NAME = "calctaf-campo-v4";
+const CACHE_NAME = "calctaf-campo-v5";
 
 const BASE_URL =
   self.registration.scope;
 
 const APP_SHELL = [
-  BASE_URL,
+  `${BASE_URL}`,
   `${BASE_URL}index.html`,
   `${BASE_URL}manifest.webmanifest`,
   `${BASE_URL}icon/logo_192.png`,
@@ -18,20 +18,17 @@ self.addEventListener("install", (event) => {
     caches.open(CACHE_NAME)
 
       .then((cache) =>
-
         cache.addAll(APP_SHELL)
-
       )
 
       .then(() =>
-
         self.skipWaiting()
-
       )
 
   );
 
 });
+
 
 self.addEventListener("activate", (event) => {
 
@@ -71,6 +68,7 @@ self.addEventListener("activate", (event) => {
 
 });
 
+
 self.addEventListener("fetch", (event) => {
 
   const request =
@@ -86,6 +84,19 @@ self.addEventListener("fetch", (event) => {
 
   const url =
     new URL(request.url);
+
+  /*
+   * O Service Worker só deve atuar
+   * dentro do escopo /coleta.
+   */
+
+  if (
+    !url.pathname.startsWith("/coleta")
+  ) {
+
+    return;
+
+  }
 
   if (
     url.origin !==

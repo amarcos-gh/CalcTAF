@@ -192,20 +192,12 @@ export default function Relatorios() {
 
         ]);
 
-        console.log(
-
-          "AVALIAÇÕES API:",
-
-          avaliacoesResponse.data
-        );
-
         setAvaliacoes(
 
           avaliacoesResponse.data
         );
 
         setMilitares(
-
           militaresResponse.data
         );
       }
@@ -221,7 +213,7 @@ export default function Relatorios() {
         error
       );
     }
-  }
+      }
 
   function filtrarAvaliacoes() {
 
@@ -289,43 +281,6 @@ export default function Relatorios() {
             subunidadeSelecionada
           );
 
-        console.log({
-
-          militar:
-            avaliacao.militar?.nomeGuerra,
-
-          omMilitar:
-            avaliacao.militar?.omId,
-
-          omStorage:
-            omId,
-
-          campanha:
-            avaliacao.chamada
-              ?.campanha?.id,
-
-          testeSelecionado,
-
-          chamada:
-            avaliacao.chamadaId,
-
-          chamadaSelecionada,
-
-          subunidade:
-            avaliacao.militar
-              ?.subunidadeId,
-
-          subunidadeSelecionada,
-
-          omOk,
-
-          testeOk,
-
-          chamadaOk,
-
-          subunidadeOk
-        });
-
         return (
 
           omOk
@@ -348,7 +303,7 @@ export default function Relatorios() {
 
       filtradas
     );
-    
+
     setPaginaAtual(
 
       1
@@ -475,50 +430,285 @@ export default function Relatorios() {
 
     }
 
-    console.log(
-
-      "PRIMEIRA AVALIAÇÃO:",
-
-      avaliacoesFiltradas[0]
-    );
-
-    console.log(
-
-      "CHAMADA:",
-
-      avaliacoesFiltradas[0]
-        ?.chamada
-    );
-
-    console.log(
-
-      "INÍCIO:",
-
-      avaliacoesFiltradas[0]
-        ?.chamada
-        ?.dataInicio
-    );
-
-    console.log(
-
-      "FIM:",
-
-      avaliacoesFiltradas[0]
-        ?.chamada
-        ?.dataFim
-    );
-
     const militaresRelatorio =
+        militares
+          .filter(
+            (militar) =>
+              tipoRelatorio === "OM" ||
+              Number(militar.subunidadeId) ===
+                Number(subunidadeSelecionada)
+          )
+          .map((militar) => {
 
-      tipoRelatorio === "OM"
+          const avaliacao =
+            avaliacoesFiltradas.find(
+              (a) =>
+                Number(a.militarId) === Number(militar.id) &&
+                Number(a.chamadaId) === Number(chamadaSelecionada)
+            );
 
-        ? militares.map((militar) => {
+            /*
+            * =====================================================
+            * REGRA 1
+            * MILITAR SEM AVALIAÇÃO
+            *
+            * Menção Final = NR
+            * Suficiência = vazio
+            * =====================================================
+            */
 
-            const avaliacao =
+            if (!avaliacao) {
 
-              avaliacoesFiltradas.find(
-                (a) => a.militarId === militar.id
-              );
+              return {
+
+                id: militar.id,
+
+                militar,
+
+                mencaoFinal: "NR",
+
+                suficiencia: ""
+
+              };
+
+            }
+
+            /*
+            * =====================================================
+            * MENÇÃO ORIGINAL
+            * =====================================================
+            */
+
+            const mencaoOriginal =
+              String(
+                avaliacao.mencaoFinal ?? "NR"
+              ).trim().toUpperCase();
+
+            if (
+              mencaoOriginal === "" &&
+              (
+                avaliacao.suficiencia === "S" ||
+                avaliacao.suficiencia === "NS"
+              )
+            ) {
+              return {
+                id: militar.id,
+                militar,
+                mencaoFinal: "",
+                suficiencia: avaliacao.suficiencia
+              };
+            }
+
+            /*
+            * =====================================================
+            * REGRA 2
+            * NR NUNCA PODE TER SUFICIÊNCIA
+            *
+            * Mesmo que o backend ou outro processamento
+            * tenha enviado suficiencia = "S" ou "NS",
+            * aqui ela será obrigatoriamente apagada.
+            * =====================================================
+            */
+
+            if (mencaoOriginal === "NR") {
+
+              return {
+
+                id: militar.id,
+
+                militar,
+
+                mencaoFinal: "NR",
+
+                suficiencia: ""
+
+              };
+
+            }
+
+            /*
+            * =====================================================
+            * CALCULA IDADE
+            * =====================================================
+            */
+
+            let idade = null;
+
+            if (militar.dataNascimento) {
+
+              const hoje = new Date();
+
+              const nascimento =
+                new Date(
+                  militar.dataNascimento
+                );
+
+              idade =
+                hoje.getFullYear() -
+                nascimento.getFullYear();
+
+              const mes =
+                hoje.getMonth() -
+                nascimento.getMonth();
+
+              if (
+                mes < 0 ||
+                (
+                  mes === 0 &&
+                  hoje.getDate() < nascimento.getDate()
+                )
+              ) {
+
+                idade--;
+
+              }
+
+            }
+
+            /*
+            * =====================================================
+            * REGRA 3
+            * MILITAR COM 50 ANOS OU MAIS
+            *
+            * S -> Menção Final vazia / Suficiência S
+            * I -> Menção Final vazia / Suficiência NS
+            * =====================================================
+            */
+
+            if (idade !== null && idade >= 50) {
+
+              if (mencaoOriginal === "S") {
+
+                return {
+
+                  id: militar.id,
+
+                  militar,
+
+                  mencaoFinal: "",
+
+                  suficiencia: "S"
+
+                };
+
+              }
+
+              if (mencaoOriginal === "I") {
+
+                return {
+
+                  id: militar.id,
+
+                  militar,
+
+                  mencaoFinal: "",
+
+                  suficiencia: "NS"
+
+                };
+
+              }
+
+            }
+
+            /*
+            * =====================================================
+            * REGRA 4
+            * MILITAR COM MENOS DE 50 ANOS
+            *
+            * E / MB / B -> S
+            * R / I      -> NS
+            * =====================================================
+            */
+
+            if (mencaoOriginal === "E") {
+
+              return {
+
+                id: militar.id,
+
+                militar,
+
+                mencaoFinal: "E",
+
+                suficiencia: "S"
+
+              };
+
+            }
+
+            if (mencaoOriginal === "MB") {
+
+              return {
+
+                id: militar.id,
+
+                militar,
+
+                mencaoFinal: "MB",
+
+                suficiencia: "S"
+
+              };
+
+            }
+
+            if (mencaoOriginal === "B") {
+
+              return {
+
+                id: militar.id,
+
+                militar,
+
+                mencaoFinal: "B",
+
+                suficiencia: "S"
+
+              };
+
+            }
+
+            if (mencaoOriginal === "R") {
+
+              return {
+
+                id: militar.id,
+
+                militar,
+
+                mencaoFinal: "R",
+
+                suficiencia: "NS"
+
+              };
+
+            }
+
+            if (mencaoOriginal === "I") {
+
+              return {
+
+                id: militar.id,
+
+                militar,
+
+                mencaoFinal: "I",
+
+                suficiencia: "NS"
+
+              };
+
+            }
+
+            /*
+            * =====================================================
+            * SEGURANÇA
+            *
+            * Qualquer situação não prevista fica sem
+            * suficiência, mas mantém a menção recebida.
+            * =====================================================
+            */
 
             return {
 
@@ -526,38 +716,25 @@ export default function Relatorios() {
 
               militar,
 
-              mencaoFinal:
-                avaliacao?.mencaoFinal || "NR"
+              mencaoFinal: mencaoOriginal,
+
+              suficiencia: ""
+
             };
 
-          })
+          });
 
-        : avaliacoesFiltradas;
-
-    const concluidos =
-
+  const concluidos =
     militaresRelatorio.filter(
-
       (m) =>
-
-        m.mencaoFinal
-
-        &&
-
-        m.mencaoFinal !== "NR"
+        m.suficiencia === "S" ||
+        m.suficiencia === "NS"
     );
 
-    const pendentes =
-
+  const pendentes =
     militaresRelatorio.filter(
-
       (m) =>
-
-        !m.mencaoFinal
-
-        ||
-
-        m.mencaoFinal === "NR"
+        m.suficiencia === ""
     );
 
     concluidos.sort((a, b) => {
@@ -1367,40 +1544,34 @@ pendentes.sort((a, b) => {
         "
       >
 
-        <table className="w-full">
+        <table className="w-full table-fixed">
 
           <thead>
 
             <tr className="border-b">
 
-              <th className="px-3 py-1.5 text-left text-sm">
-
+              <th className="w-[28%] px-2 py-1.5 text-center text-sm">
                 Nome Completo
-
               </th>
 
-              <th className="px-3 py-1.5 text-left text-sm">
-
+              <th className="w-[21%] px-2 py-1.5 text-center text-sm">
                 Nome Guerra
-
               </th>
 
-              <th className="px-3 py-1.5 text-left text-sm">
-
+              <th className="w-[13%] px-2 py-1.5 text-center text-sm">
                 Segmento
-
               </th>
 
-              <th className="px-3 py-1.5 text-left text-sm">
-
+              <th className="w-[13%] px-2 py-1.5 text-center text-sm">
                 Curso
-
               </th>
 
-              <th className="px-3 py-1.5 text-left text-sm">
-
+              <th className="w-[12%] px-2 py-1.5 text-center text-sm">
                 Menção Final
+              </th>
 
+              <th className="w-[13%] px-2 py-1.5 text-center text-sm whitespace-nowrap">
+                Suficiência
               </th>
 
             </tr>
@@ -1409,12 +1580,12 @@ pendentes.sort((a, b) => {
 
           <tbody>
 
-            {avaliacoesFiltradas.length === 0 && (
+            {resultadoFinal.length === 0 && (
 
               <tr>
 
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="
                     p-6
                     text-center
@@ -1429,9 +1600,13 @@ pendentes.sort((a, b) => {
               </tr>
             )}
 
-            {avaliacoesPagina.map(
-
-              (avaliacao) => (
+            {resultadoFinal
+              .slice(
+                indiceInicial,
+                indiceInicial + ITENS_POR_PAGINA
+              )
+              .map(
+                (avaliacao) => (
 
                 <tr
                   key={avaliacao.id}
@@ -1441,44 +1616,34 @@ pendentes.sort((a, b) => {
                   "
                 >
 
-                  <td className="px-3 py-1.5">
-
+                  <td className="px-3 py-1.5 text-center">
                     {avaliacao.militar?.nomeCompleto || "-"}
-
                   </td>
 
-                  <td className="px-3 py-1.5">
-
-                    {`${avaliacao.militar?.postoGraduacao?.abreviacao?.replaceAll("§", "º") || ""} ${avaliacao.militar?.nomeGuerra || "-"}`}
-
+                  <td className="px-3 py-1.5 text-center">
+                    {`${avaliacao.militar?.postoGraduacao?.abreviacao?.replaceAll("Â§", "Âº") || ""} ${avaliacao.militar?.nomeGuerra || "-"}`}
                   </td>
 
-                  <td className="px-3 py-1.5">
-
+                  <td className="px-3 py-1.5 text-center">
                     {avaliacao.militar?.segmento === "M"
-
                       ? "Masculino"
-
                       : "Feminino"}
-
                   </td>
 
-                  <td className="px-3 py-1.5">
-
+                  <td className="px-3 py-1.5 text-center">
                     {avaliacao.militar?.curso?.codigo || "-"}
-
                   </td>
 
-                  <td
-                    className="
-                      px-3
-                      py-2
-                      font-bold
-                    "
-                  >
+                  <td className="px-3 py-2 text-center font-bold">
+                    {avaliacao?.mencaoFinal === ""
+                      ? "--"
+                      : avaliacao?.mencaoFinal || "NR"}
+                  </td>
 
-                    {avaliacao?.mencaoFinal || "NR"}
-
+                  <td className="px-3 py-2 text-center font-bold">
+                    {avaliacao?.mencaoFinal === "NR"
+                      ? ""
+                      : avaliacao?.suficiencia || ""}
                   </td>
 
                 </tr>

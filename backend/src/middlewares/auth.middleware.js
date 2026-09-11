@@ -35,9 +35,14 @@ export default function auth(req, res, next) {
   try {
 
     req.usuario =
-      jwt.verify(token, JWT_SECRET);
+  jwt.verify(token, JWT_SECRET);
 
-    next();
+console.log(
+  "USUÁRIO AUTENTICADO:",
+  req.usuario
+);
+
+next();
 
   } catch (erro) {
 

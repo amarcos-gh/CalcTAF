@@ -22,6 +22,8 @@ export default function Militares() {
 
   const [militarSelecionado, setMilitarSelecionado] = useState(null);
 
+  const [militarCadastradoAgora, setMilitarCadastradoAgora] = useState(null);
+
   const [mensagem, setMensagem] = useState("");
 
   const [arquivoImportacao, setArquivoImportacao] = useState(null);
@@ -610,68 +612,54 @@ export default function Militares() {
         try {
 
           const response =
-            await api.put(
+  await api.post("/militares", {
 
-              `/militares/${militarSelecionado.id}`,
+    nomeCompleto:
+      form.nomeCompleto,
 
-              {
+    postoGraduacaoId:
+      Number(
+        form.postoGraduacaoId
+      ),
 
-                nomeCompleto:
+    nomeGuerra:
+      form.nomeGuerra,
 
-                  form.nomeCompleto ||
+    segmento:
+      form.segmento,
 
-                  militarSelecionado.nomeCompleto,
+    cursoId:
+      Number(
+        form.cursoId
+      ),
 
-                postoGraduacaoId:
+    dataNascimento:
+      form.dataNascimento,
 
-                  form.postoGraduacaoId
+    subunidade:
+      subunidadeInput,
 
-                    ?
+    omId:
+      Number(
+        localStorage.getItem(
+          "omId"
+        )
+      )
+  });
 
-                    Number(
-                      form.postoGraduacaoId
-                    )
+setMensagem(
+  "Militar cadastrado com sucesso."
+);
 
-                    :
+setMilitarSelecionado(
+  response.data
+);
 
-                    militarSelecionado.postoGraduacao?.id,
+setMilitarCadastradoAgora(
+  response.data
+);
 
-                nomeGuerra:
-
-                  form.nomeGuerra ||
-
-                  militarSelecionado.nomeGuerra,
-
-                segmento:
-
-                  form.segmento ||
-
-                  militarSelecionado.segmento,
-
-                cursoId:
-
-                  Number(
-                    form.cursoId
-                  ) ||
-
-                  militarSelecionado.cursoId,
-
-                dataNascimento:
-
-                  form.dataNascimento ||
-
-                  militarSelecionado.dataNascimento,
-
-                subunidade:
-                  subunidadeInput.trim()
-                }
-            );
-
-          setMilitarSelecionado({
-            ...response.data
-          });
-
-          await carregarMilitares();
+await carregarMilitares();
 
           setBusca("");
 
@@ -736,6 +724,10 @@ export default function Militares() {
       );
 
       setMilitarSelecionado(
+        response.data
+      );
+
+      setMilitarCadastradoAgora(
         response.data
       );
 
@@ -1298,6 +1290,8 @@ async function excluirMilitar() {
                         militar
                       );
 
+                      setMilitarCadastradoAgora(null);
+
                       const nomeSU =
                         militar.subunidade?.nome ?? "";
 
@@ -1772,6 +1766,114 @@ async function excluirMilitar() {
       </div>
 
       </form>
+
+      {militarCadastradoAgora && (
+          <div className="mt-6 bg-slate-50 rounded-2xl border border-green-200 p-4">
+
+            <div className="mb-4">
+
+              <h3 className="text-lg font-semibold text-green-800">
+                Cadastro confirmado
+              </h3>
+
+              <p className="text-sm text-slate-600">
+                Confira os dados do militar recém-cadastrado:
+              </p>
+
+            </div>
+
+            <div className="overflow-x-auto">
+
+              <table className="w-full border-collapse">
+
+                <thead>
+
+                  <tr className="border-b border-slate-300">
+
+                    <th className="px-3 py-2 text-center text-sm font-semibold">
+                      Nome Completo
+                    </th>
+
+                    <th className="px-3 py-2 text-center text-sm font-semibold">
+                      P/G
+                    </th>
+
+                    <th className="px-3 py-2 text-center text-sm font-semibold">
+                      Nome de Guerra
+                    </th>
+
+                    <th className="px-3 py-2 text-center text-sm font-semibold">
+                      Segmento
+                    </th>
+
+                    <th className="px-3 py-2 text-center text-sm font-semibold">
+                      Curso
+                    </th>
+
+                    <th className="px-3 py-2 text-center text-sm font-semibold">
+                      Data de Nascimento
+                    </th>
+
+                    <th className="px-3 py-2 text-center text-sm font-semibold">
+                      Subunidade
+                    </th>
+
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+                  <tr>
+
+                    <td className="px-3 py-2 text-sm text-center">
+                      {militarCadastradoAgora.nomeCompleto || "-"}
+                    </td>
+
+                    <td className="px-3 py-2 text-sm text-center">
+                      {militarCadastradoAgora.postoGraduacao?.abreviacao || "-"}
+                    </td>
+
+                    <td className="px-3 py-2 text-sm text-center">
+                      {militarCadastradoAgora.nomeGuerra || "-"}
+                    </td>
+
+                    <td className="px-3 py-2 text-sm text-center">
+                      {militarCadastradoAgora.segmento === "M"
+                        ? "Masculino"
+                        : militarCadastradoAgora.segmento === "F"
+                          ? "Feminino"
+                          : "-"}
+                    </td>
+
+                    <td className="px-3 py-2 text-sm text-center">
+                      {militarCadastradoAgora.curso?.codigo || "-"}
+                    </td>
+
+                    <td className="px-3 py-2 text-sm text-center">
+                      {militarCadastradoAgora.dataNascimento
+                        ? new Date(
+                            militarCadastradoAgora.dataNascimento
+                          ).toLocaleDateString("pt-BR")
+                        : "-"}
+                    </td>
+
+                    <td className="px-3 py-2 text-sm text-center">
+                      {militarCadastradoAgora.subunidade?.nome ||
+                        militarCadastradoAgora.subunidade ||
+                        "-"}
+                    </td>
+
+                  </tr>
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+        )}
 
       </div>
 

@@ -604,6 +604,58 @@ export function calcularMencaoFinal({
 }
 
 // ======================================================
+// CALCULAR SUFICIÊNCIA — MILITARES 50+
+// ======================================================
+
+export function calcularSuficiencia50Mais({
+  mencaoCorrida,
+  mencaoFlexao,
+  mencaoAbdominal
+}) {
+
+  const mencoes = [
+    mencaoCorrida,
+    mencaoFlexao,
+    mencaoAbdominal
+  ].filter(
+    (mencao) =>
+      mencao !== null &&
+      mencao !== undefined &&
+      mencao !== "" &&
+      mencao !== MENCOES.NR &&
+      mencao !== MENCOES.NF
+  );
+
+  if (mencoes.length === 0) {
+    return "";
+  }
+
+  if (
+    mencoes.some(
+      (mencao) =>
+        mencao === MENCOES.R ||
+        mencao === MENCOES.I
+    )
+  ) {
+    return "NS";
+  }
+
+  if (
+    mencoes.every(
+      (mencao) =>
+        mencao === MENCOES.E ||
+        mencao === MENCOES.MB ||
+        mencao === MENCOES.B ||
+        mencao === MENCOES.S
+    )
+  ) {
+    return "S";
+  }
+
+  return "";
+}
+
+// ======================================================
 // PROCESSAR AVALIAÇÃO
 // ======================================================
 
@@ -667,43 +719,106 @@ export async function processarAvaliacao({
     });
 
   const resultado =
-  calcularMencaoFinal({
+    calcularMencaoFinal({
 
-    corrida: mencaoCorrida,
+      corrida: mencaoCorrida,
 
-    flexao: mencaoFlexao,
+      flexao: mencaoFlexao,
 
-    abdominal: mencaoAbdominal,
+      abdominal: mencaoAbdominal,
 
-    barra: regras.barra,
+      barra: regras.barra,
 
-    ppm: regras.ppm
+      ppm: regras.ppm
 
-  });
+    });
+
+  let mencaoFinal =
+    resultado.mencaoFinal;
+
+  let suficiencia = "";
+
+  if (
+    resultado.status ===
+    STATUS_AVALIACAO.AVALIADO
+  ) {
+
+    if (Number(idade) >= 50) {
+
+      mencaoFinal = "";
+
+      suficiencia =
+        calcularSuficiencia50Mais({
+
+          mencaoCorrida,
+
+          mencaoFlexao,
+
+          mencaoAbdominal
+
+        });
+
+    } else {
+
+      if (
+        mencaoFinal === MENCOES.E ||
+        mencaoFinal === MENCOES.MB ||
+        mencaoFinal === MENCOES.B ||
+        mencaoFinal === "S"
+      ) {
+
+        suficiencia = "S";
+
+      } else if (
+        mencaoFinal === MENCOES.R ||
+        mencaoFinal === MENCOES.I
+      ) {
+
+        suficiencia = "NS";
+
+      } else {
+
+        suficiencia = "";
+
+      }
+
+    }
+
+  }
 
   return {
 
     // Índices informados
 
     corrida,
+
     flexao,
+
     abdominal,
+
     barra,
+
     ppm,
 
     // Menções calculadas
 
     mencaoCorrida,
+
     mencaoFlexao,
+
     mencaoAbdominal,
+
     mencaoBarra: regras.barra,
+
     mencaoPPM: regras.ppm,
 
     // Resultado da avaliação
 
     status: resultado.status,
 
-    mencaoFinal: resultado.mencaoFinal
+    mencaoFinal,
+
+    suficiencia
 
   };
 }

@@ -8,21 +8,51 @@ function converterDataBR(data) {
   }
 
   const [
-
     dia,
     mes,
     ano
-
   ] = data.split("/");
 
   return new Date(
-
     Number(ano),
-
     Number(mes) - 1,
-
     Number(dia)
   );
+}
+
+function converterDataBRValida(data) {
+
+  if (
+    !data ||
+    !/^\d{2}\/\d{2}\/\d{4}$/.test(data)
+  ) {
+
+    return null;
+  }
+
+  const [
+    dia,
+    mes,
+    ano
+  ] = data.split("/").map(Number);
+
+  const dataConvertida =
+    new Date(
+      ano,
+      mes - 1,
+      dia
+    );
+
+  if (
+    dataConvertida.getFullYear() !== ano ||
+    dataConvertida.getMonth() !== mes - 1 ||
+    dataConvertida.getDate() !== dia
+  ) {
+
+    return null;
+  }
+
+  return dataConvertida;
 }
 
 export async function criarMilitar(req, res) {
@@ -52,7 +82,10 @@ export async function criarMilitar(req, res) {
       omId,
       subunidade,
       postoGraduacaoId,
-      cursoId
+      cursoId,
+      tafAlternativo,
+      boletimInternoNumero,
+      boletimInternoData
 
     } = req.body;
 
@@ -133,6 +166,79 @@ export async function criarMilitar(req, res) {
           `Campos obrigatórios não preenchidos: ${faltando.join(", ")}`
       });
     }
+    
+    const ehAdministrador =
+      req.usuario?.perfil === "ADMINISTRADOR";
+
+    const tafAlternativoSolicitado =
+      tafAlternativo === true;
+
+    if (
+      tafAlternativoSolicitado &&
+      !ehAdministrador
+    ) {
+      return res.status(403).json({
+        error:
+          "Somente o ADMINISTRADOR pode cadastrar TAF Alternativo."
+      });
+    }
+
+    let boletimInternoNumeroFinal = null;
+    let boletimInternoDataFinal = null;
+
+    if (tafAlternativoSolicitado) {
+
+      if (
+        !boletimInternoNumero ||
+        !String(boletimInternoNumero).trim()
+      ) {
+        return res.status(400).json({
+          error:
+            "O número do BI é obrigatório para TAF Alternativo."
+        });
+      }
+
+      if (
+        !/^\d+$/.test(
+          String(boletimInternoNumero).trim()
+        )
+      ) {
+        return res.status(400).json({
+          error:
+            "O número do BI deve conter somente números."
+        });
+      }
+
+      if (
+        !boletimInternoData ||
+        !String(boletimInternoData).trim()
+      ) {
+        return res.status(400).json({
+          error:
+            "A data do BI é obrigatória para TAF Alternativo."
+        });
+      }
+
+      boletimInternoDataFinal =
+      converterDataBRValida(
+        boletimInternoData
+      );
+
+    if (
+      !boletimInternoDataFinal
+    ) {
+
+      return res.status(400).json({
+        error:
+          "Data do BI inválida."
+      });
+    }
+
+    boletimInternoNumeroFinal =
+      String(
+        boletimInternoNumero
+      ).trim();
+    }
 
     const omExiste =
 
@@ -192,85 +298,72 @@ export async function criarMilitar(req, res) {
     }
 
   const militar =
+  await prisma.militar.create({
+    data: {
+      nomeCompleto:
+        nomeCompleto.trim(),
 
-    await prisma.militar.create({
+      nomeGuerra:
+        nomeGuerra.trim(),
 
-      data: {
+      segmento,
 
-        nomeCompleto:
+      dataNascimento:
+        converterDataBR(
+          dataNascimento
+        ),
 
-          nomeCompleto.trim(),
+      tafAlternativo:
+        tafAlternativoSolicitado,
 
-        nomeGuerra:
+      boletimInternoNumero:
+        boletimInternoNumeroFinal,
 
-          nomeGuerra.trim(),
+      boletimInternoData:
+        boletimInternoDataFinal,
 
-        segmento,
-
-        dataNascimento:
-
-          converterDataBR(
-            dataNascimento
-          ),
-
-        om: {
-
-          connect: {
-
-            id:
-
-              Number(
-                omId
-              )
-          }
-        },
-
-        subunidade: {
-
-          connect: {
-
-            id:
-
-              subunidadeExistente.id
-          }
-        },
-
-        postoGraduacao: {
-
-          connect: {
-
-            id:
-
-              Number(
-                postoGraduacaoId
-              )
-          }
-        },
-
-        curso: {
-
-          connect: {
-
-            id:
-
-              Number(
-                cursoId
-              )
-          }
+      om: {
+        connect: {
+          id:
+            Number(
+              omId
+            )
         }
       },
 
-      include: {
+      subunidade: {
+        connect: {
+          id:
+            subunidadeExistente.id
+        }
+      },
 
-        postoGraduacao: true,
+      postoGraduacao: {
+        connect: {
+          id:
+            Number(
+              postoGraduacaoId
+            )
+        }
+      },
 
-        om: true,
-
-        subunidade: true,
-
-        curso: true
+      curso: {
+        connect: {
+          id:
+            Number(
+              cursoId
+            )
+        }
       }
-    });
+    },
+
+    include: {
+      postoGraduacao: true,
+      om: true,
+      subunidade: true,
+      curso: true
+    }
+  });
 
   return res.status(201).json(
 
@@ -288,196 +381,304 @@ export async function criarMilitar(req, res) {
   }
 }
 
-export async function atualizarMilitar(
-  req,
-  res
-) {
+export async function atualizarMilitar(req, res) {
 
   try {
 
     const { id } = req.params;
 
-   const {
+    const {
+      nomeCompleto,
+      postoGraduacaoId,
+      nomeGuerra,
+      segmento,
+      cursoId,
+      dataNascimento,
+      subunidade,
+      omId,
+      tafAlternativo,
+      boletimInternoNumero,
+      boletimInternoData
+    } = req.body;
 
-    nomeCompleto,
-    postoGraduacaoId,
-    nomeGuerra,
-    segmento,
-    cursoId,
-    dataNascimento,
-    subunidade,
-    omId
+    const militarAtual =
+      await prisma.militar.findUnique({
 
-  } = req.body;
-  
-const militarAtual =
+        where: {
 
-  await prisma.militar.findUnique({
+          id:
+            Number(
+              id
+            )
+        },
 
-    where: {
+        include: {
 
-      id:
+          postoGraduacao: true,
 
-        Number(
-          id
-        )
-    },
+          curso: true,
 
-    include: {
+          subunidade: true,
 
-      postoGraduacao: true,
+          om: true
+        }
+      });
 
-      curso: true,
+    if (!militarAtual) {
 
-      subunidade: true,
+      return res.status(404).json({
 
-      om: true
+        error:
+          "Militar não encontrado."
+      });
     }
-  });
 
-if (!militarAtual) {
+    const ehAdministrador =
+      req.usuario?.perfil === "ADMINISTRADOR";
 
-  return res.status(404).json({
+    const tafAlternativoFoiEnviado =
+      typeof tafAlternativo !== "undefined";
 
-    error:
-      "Militar não encontrado."
-  });
-}
+    let tafAlternativoFinal =
+      militarAtual.tafAlternativo;
 
-let subunidadeIdFinal =
+    let boletimInternoNumeroFinal =
+      militarAtual.boletimInternoNumero;
 
-  militarAtual.subunidadeId;
+    let boletimInternoDataFinal =
+      militarAtual.boletimInternoData;
 
-if (subunidade) {
+    if (
+      tafAlternativoFoiEnviado
+    ) {
 
-  let subunidadeExistente =
+      if (!ehAdministrador) {
 
-    await prisma.subunidade.findFirst({
+        return res.status(403).json({
 
-      where: {
-
-        nome: subunidade.trim(),
-
-        omId: militarAtual.omId
-
+          error:
+            "Somente o ADMINISTRADOR pode alterar o TAF Alternativo e os dados do BI."
+        });
       }
 
-    });
+      tafAlternativoFinal =
+        tafAlternativo === true;
 
-  if (!subunidadeExistente) {
+      if (!tafAlternativoFinal) {
 
-    subunidadeExistente =
+        boletimInternoNumeroFinal =
+          null;
 
-      await prisma.subunidade.create({
+        boletimInternoDataFinal =
+          null;
+
+      } else {
+
+        if (
+          !boletimInternoNumero ||
+          !String(
+            boletimInternoNumero
+          ).trim()
+        ) {
+
+          return res.status(400).json({
+
+            error:
+              "O número do BI é obrigatório para TAF Alternativo."
+          });
+        }
+
+        if (
+          !/^\d+$/.test(
+            String(
+              boletimInternoNumero
+            ).trim()
+          )
+        ) {
+
+          return res.status(400).json({
+
+            error:
+              "O número do BI deve conter somente números."
+          });
+        }
+
+        if (
+          !boletimInternoData ||
+          !String(
+            boletimInternoData
+          ).trim()
+        ) {
+
+          return res.status(400).json({
+
+            error:
+              "A data do BI é obrigatória para TAF Alternativo."
+          });
+        }
+
+        boletimInternoDataFinal =
+        converterDataBRValida(
+          boletimInternoData
+        );
+
+      if (
+        !boletimInternoDataFinal
+      ) {
+
+        return res.status(400).json({
+
+          error:
+            "Data do BI inválida."
+        });
+      }
+
+      boletimInternoNumeroFinal =
+        String(
+          boletimInternoNumero
+        ).trim();
+      }
+    }
+
+    let subunidadeIdFinal =
+      militarAtual.subunidadeId;
+
+    if (subunidade) {
+
+      let subunidadeExistente =
+        await prisma.subunidade.findFirst({
+
+          where: {
+
+            nome:
+              subunidade.trim(),
+
+            omId:
+              militarAtual.omId
+          }
+
+        });
+
+      if (!subunidadeExistente) {
+
+        subunidadeExistente =
+          await prisma.subunidade.create({
+
+            data: {
+
+              nome:
+                subunidade.trim(),
+
+              omId:
+                militarAtual.omId
+            }
+          });
+      }
+
+      subunidadeIdFinal =
+        subunidadeExistente.id;
+    }
+
+    const militar =
+      await prisma.militar.update({
+
+        where: {
+
+          id:
+            militarAtual.id
+        },
 
         data: {
 
-          nome: subunidade.trim(),
+          nomeCompleto:
 
-          omId: militarAtual.omId
+            nomeCompleto ||
 
+            militarAtual.nomeCompleto,
+
+          postoGraduacaoId:
+
+            postoGraduacaoId
+
+              ?
+
+              Number(
+                postoGraduacaoId
+              )
+
+              :
+
+              militarAtual.postoGraduacaoId,
+
+          nomeGuerra:
+
+            nomeGuerra ||
+
+            militarAtual.nomeGuerra,
+
+          segmento:
+
+            segmento ||
+
+            militarAtual.segmento,
+
+          dataNascimento:
+
+            dataNascimento
+
+              ?
+
+              converterDataBR(
+                dataNascimento
+              )
+
+              :
+
+              militarAtual.dataNascimento,
+
+          cursoId:
+
+            cursoId
+
+              ?
+
+              Number(
+                cursoId
+              )
+
+              :
+
+              militarAtual.cursoId,
+
+          subunidadeId:
+
+            subunidadeIdFinal,
+
+          tafAlternativo:
+            tafAlternativoFinal,
+
+          boletimInternoNumero:
+            boletimInternoNumeroFinal,
+
+          boletimInternoData:
+            boletimInternoDataFinal
+        },
+
+        include: {
+
+          postoGraduacao: true,
+
+          curso: true,
+
+          subunidade: true,
+
+          om: true
         }
-
       });
 
-  }
-
-  subunidadeIdFinal =
-
-    subunidadeExistente.id;
-}
-
-const militar =
-  await prisma.militar.update({
-
-    where: {
-
-      id:
-
-        militarAtual.id
-    },
-
-    data: {
-
-      nomeCompleto:
-
-        nomeCompleto ||
-
-        militarAtual.nomeCompleto,
-
-      postoGraduacaoId:
-
-        postoGraduacaoId
-
-          ?
-
-          Number(
-            postoGraduacaoId
-          )
-
-          :
-
-          militarAtual.postoGraduacaoId,
-
-      nomeGuerra:
-
-        nomeGuerra ||
-
-        militarAtual.nomeGuerra,
-
-      segmento:
-
-        segmento ||
-
-        militarAtual.segmento,
-
-      dataNascimento:
-
-        dataNascimento
-
-          ?
-
-          converterDataBR(
-            dataNascimento
-          )
-
-          :
-
-          militarAtual.dataNascimento,
-
-      cursoId:
-
-        cursoId
-
-          ?
-
-          Number(
-            cursoId
-          )
-
-          :
-
-          militarAtual.cursoId,
-
-      subunidadeId:
-
-        subunidadeIdFinal
-    },
-
-    include: {
-
-      postoGraduacao: true,
-
-      curso: true,
-
-      subunidade: true
-    }
-  });
-
-res.json(
-
-  militar
-);
+    res.json(
+      militar
+    );
 
   } catch (error) {
 
@@ -509,42 +710,33 @@ export async function listarMilitares(req, res) {
 
     console.log("Consultando OM:", omId);
 
-    const militares = await prisma.militar.findMany({
+  const militares = await prisma.militar.findMany({
 
-      where: {
-        omId: Number(omId)
-      },
+  where: {
+    omId: Number(omId)
+  },
 
+  include: {
+    postoGraduacao: true,
+    curso: true,
+    subunidade: true,
+
+    avaliacoes: {
       include: {
-        postoGraduacao: true,
-        curso: true,
-        subunidade: true,
-
-        avaliacoes: {
-
+        chamada: {
           include: {
-
-            chamada: {
-
-              include: {
-
-                campanha: true
-
-              }
-
-            }
-
+            campanha: true
           }
-
         }
-
-      },
-
-      orderBy: {
-        nomeCompleto: "asc"
       }
+    }
+  },
 
-    });
+  orderBy: {
+    nomeCompleto: "asc"
+  }
+
+});
 
 console.dir(
 

@@ -1,0 +1,8 @@
+ALTER TABLE "Militar"
+ADD COLUMN IF NOT EXISTS "tafAlternativo" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "Militar"
+ADD COLUMN IF NOT EXISTS "boletimInternoNumero" TEXT;
+
+ALTER TABLE "Militar"
+ADD COLUMN IF NOT EXISTS "boletimInternoData" TIMESTAMP(3);

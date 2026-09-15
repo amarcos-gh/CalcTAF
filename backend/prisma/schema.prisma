@@ -55,6 +55,9 @@ model Militar {
   subunidadeId       Int
   postoGraduacaoId   Int
   cursoId            Int
+  tafAlternativo        Boolean                @default(false)
+  boletimInternoNumero  String?
+  boletimInternoData    DateTime?
   ativo              Boolean                @default(true)
   createdAt          DateTime               @default(now())
   avaliacoes         AvaliacaoTAF[]

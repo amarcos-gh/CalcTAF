@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 
@@ -13,18 +13,42 @@ export default function TelaInicioDescanso({ children }) {
 
   const [mostrarTela, setMostrarTela] = useState(false);
 
+  const rotaAnteriorRef = useRef(location.pathname);
+  const timerRef = useRef(null);
+
   useEffect(() => {
-    if (estaNoLogin) {
+    const token = localStorage.getItem("token");
+
+    if (estaNoLogin || !token) {
       setMostrarTela(false);
+
+      sessionStorage.removeItem("telaInicioExibida");
+
+      rotaAnteriorRef.current = location.pathname;
+
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+
       return;
     }
 
-    if (!localStorage.getItem("token")) {
-      setMostrarTela(false);
-      return;
+    const estavaNoLogin =
+      rotaAnteriorRef.current === "/" ||
+      rotaAnteriorRef.current === "/recuperar-senha" ||
+      rotaAnteriorRef.current === "/cadastro-usuario" ||
+      rotaAnteriorRef.current === "/coleta/login";
+
+    const telaJaExibida =
+      sessionStorage.getItem("telaInicioExibida") === "true";
+
+    if (estavaNoLogin && !telaJaExibida) {
+      setMostrarTela(true);
+      sessionStorage.setItem("telaInicioExibida", "true");
     }
 
-    setMostrarTela(true);
+    rotaAnteriorRef.current = location.pathname;
   }, [location.pathname, estaNoLogin]);
 
   useEffect(() => {
@@ -36,12 +60,12 @@ export default function TelaInicioDescanso({ children }) {
       return;
     }
 
-    let timer;
-
     function iniciarContagem() {
-      clearTimeout(timer);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
 
-      timer = setTimeout(() => {
+      timerRef.current = setTimeout(() => {
         setMostrarTela(true);
       }, 5 * 60 * 1000);
     }
@@ -74,7 +98,10 @@ export default function TelaInicioDescanso({ children }) {
     iniciarContagem();
 
     return () => {
-      clearTimeout(timer);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
 
       eventos.forEach((evento) => {
         window.removeEventListener(
@@ -85,8 +112,17 @@ export default function TelaInicioDescanso({ children }) {
     };
   }, [estaNoLogin, mostrarTela]);
 
-  function entrarNoSistema() {
+  function fecharTela() {
     setMostrarTela(false);
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
+    timerRef.current = setTimeout(() => {
+      setMostrarTela(true);
+    }, 5 * 60 * 1000);
   }
 
   return (
@@ -96,6 +132,7 @@ export default function TelaInicioDescanso({ children }) {
 
       {mostrarTela && (
         <div
+          onClick={fecharTela}
           className="
             fixed
             inset-0
@@ -104,9 +141,9 @@ export default function TelaInicioDescanso({ children }) {
             items-center
             justify-center
             bg-white
+            cursor-pointer
           "
         >
-
           <div
             className="
               flex
@@ -117,9 +154,9 @@ export default function TelaInicioDescanso({ children }) {
               px-6
               w-full
               h-full
+              select-none
             "
           >
-
             <img
               src={logo}
               alt="CalcTAF"
@@ -142,27 +179,7 @@ export default function TelaInicioDescanso({ children }) {
             >
               SEJA BEM-VINDO E BOM TRABALHO!!!
             </h1>
-
-            <button
-              type="button"
-              onClick={entrarNoSistema}
-              className="
-                mt-10
-                bg-green-800
-                hover:bg-green-700
-                text-white
-                font-semibold
-                rounded-xl
-                px-10
-                py-3
-                shadow-lg
-              "
-            >
-              ENTRAR
-            </button>
-
           </div>
-
         </div>
       )}
 

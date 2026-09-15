@@ -489,8 +489,10 @@ export default function Relatorios() {
               (
                 avaliacao.suficiencia === "S" ||
                 avaliacao.suficiencia === "NS"
-              )
-            ) {
+              )              
+            ) 
+            
+            {
               return {
                 id: militar.id,
                 militar,
@@ -718,7 +720,10 @@ export default function Relatorios() {
 
               mencaoFinal: mencaoOriginal,
 
-              suficiencia: ""
+              suficiencia:
+                militar.tafAlternativo === true
+                  ? avaliacao.suficiencia || ""
+                  : ""
 
             };
 
@@ -728,7 +733,9 @@ export default function Relatorios() {
     militaresRelatorio.filter(
       (m) =>
         m.suficiencia === "S" ||
-        m.suficiencia === "NS"
+        m.suficiencia === "NS" ||
+        m.suficiencia === "S/TA" ||
+        m.suficiencia === "NS/TA"
     );
 
   const pendentes =

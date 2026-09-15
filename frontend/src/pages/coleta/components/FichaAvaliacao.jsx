@@ -318,6 +318,9 @@ export default function FichaAvaliacao({
     resultado?.mencaoFinal ??
     MENCOES.NR;
 
+  const suficiencia =
+    resultado?.suficiencia ?? "";
+
   function corMencao(mencao) {
 
     switch (mencao) {
@@ -663,14 +666,35 @@ export default function FichaAvaliacao({
         <div className="mt-8 text-center">
 
           <span className="text-lg font-semibold">
-
             Menção Final
-
           </span>
 
           <div className={`text-4xl font-extrabold mt-2 ${corMencao(mencaoFinal)}`}>
+            {mencaoFinal || "--"}
+          </div>
 
-            {mencaoFinal}
+          <div className="mt-4">
+
+            <span className="text-lg font-semibold">
+              Suficiência
+            </span>
+
+            <div
+              className={`
+                text-3xl
+                font-extrabold
+                mt-1
+                ${
+                  suficiencia === "S"
+                    ? "text-green-700"
+                    : suficiencia === "NS"
+                      ? "text-red-700"
+                      : "text-gray-500"
+                }
+              `}
+            >
+              {suficiencia || "--"}
+            </div>
 
           </div>
 
@@ -814,19 +838,39 @@ export default function FichaAvaliacao({
 
             }
 
-            <div className="border-t mt-4 pt-4 flex justify-between">
+            <div className="border-t mt-4 pt-4">
 
-              <strong>
+              <div className="flex justify-between">
 
-                Menção Final
+                <strong>
+                  Menção Final
+                </strong>
 
-              </strong>
+                <strong className={corMencao(mencaoFinal)}>
+                  {mencaoFinal || "--"}
+                </strong>
 
-              <strong className={corMencao(mencaoFinal)}>
+              </div>
 
-                {mencaoFinal}
+              <div className="flex justify-between mt-2">
 
-              </strong>
+                <strong>
+                  Suficiência
+                </strong>
+
+                <strong
+                  className={
+                    suficiencia === "S"
+                      ? "text-green-700"
+                      : suficiencia === "NS"
+                        ? "text-red-700"
+                        : "text-gray-500"
+                  }
+                >
+                  {suficiencia || "--"}
+                </strong>
+
+              </div>
 
             </div>
 

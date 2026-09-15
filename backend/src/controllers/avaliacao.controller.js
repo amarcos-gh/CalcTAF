@@ -510,6 +510,20 @@ export async function criarAvaliacao(req, res) {
         mencaoFinalCalculada;
     }
 
+    if (militar.tafAlternativo === true) {
+
+      if (suficiencia === "S") {
+
+        suficiencia = "S/TA";
+
+      } else if (suficiencia === "NS") {
+
+        suficiencia = "NS/TA";
+
+      }
+
+    }
+
 // =====================================================
 // LOG DE CÁLCULO
 // =====================================================
@@ -1379,6 +1393,20 @@ const mencaoFinalCalculada =
         mencaoFinalCalculada;
     }
 
+    if (militar.tafAlternativo === true) {
+
+      if (suficiencia === "S") {
+
+        suficiencia = "S/TA";
+
+      } else if (suficiencia === "NS") {
+
+        suficiencia = "NS/TA";
+
+      }
+
+    }
+
     if (
 
       periodoInicio
@@ -2117,6 +2145,20 @@ export async function calcularAvaliacao(req, res) {
 
       mencaoFinal =
         mencaoFinalCalculada;
+    }
+
+    if (militar.tafAlternativo === true) {
+
+      if (suficiencia === "S") {
+
+        suficiencia = "S/TA";
+
+      } else if (suficiencia === "NS") {
+
+        suficiencia = "NS/TA";
+
+      }
+
     }
 
     return res.json({

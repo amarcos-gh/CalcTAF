@@ -68,10 +68,21 @@ export default function Militares() {
 
     dataNascimento: "",
 
-    subunidade: ""
+    subunidade: "",
+
+    tafAlternativo: false,
+
+    boletimInternoNumero: "",
+
+    boletimInternoData: ""
+
   });
 
-  const [abaAtiva, setAbaAtiva] = useState("cadastro");
+  const [abaAtiva, setAbaAtiva] = useState("cadastro");  
+
+  const perfilUsuario = localStorage.getItem("perfil");
+
+  const ehAdministrador = perfilUsuario === "ADMINISTRADOR";
 
   const postosGraduacoes = [
 
@@ -611,55 +622,67 @@ export default function Militares() {
 
         try {
 
-          const response =
-  await api.post("/militares", {
+        const response =
+          await api.put(
+            `/militares/${militarSelecionado.id}`,
+            {
 
-    nomeCompleto:
-      form.nomeCompleto,
+              nomeCompleto:
+                form.nomeCompleto,
 
-    postoGraduacaoId:
-      Number(
-        form.postoGraduacaoId
-      ),
+              postoGraduacaoId:
+                Number(
+                  form.postoGraduacaoId
+                ),
 
-    nomeGuerra:
-      form.nomeGuerra,
+              nomeGuerra:
+                form.nomeGuerra,
 
-    segmento:
-      form.segmento,
+              segmento:
+                form.segmento,
 
-    cursoId:
-      Number(
-        form.cursoId
-      ),
+              cursoId:
+                Number(
+                  form.cursoId
+                ),
 
-    dataNascimento:
-      form.dataNascimento,
+              dataNascimento:
+                form.dataNascimento,
 
-    subunidade:
-      subunidadeInput,
+              subunidade:
+                subunidadeInput,
 
-    omId:
-      Number(
-        localStorage.getItem(
-          "omId"
-        )
-      )
-  });
+              omId:
+                Number(
+                  localStorage.getItem(
+                    "omId"
+                  )
+                ),
 
-setMensagem(
-  "Militar cadastrado com sucesso."
-);
+              tafAlternativo:
+                form.tafAlternativo,
 
-setMilitarSelecionado(
-  response.data
-);
+              boletimInternoNumero:
+                form.boletimInternoNumero,
 
-setMilitarCadastradoAgora(
-  response.data
-);
+              boletimInternoData:
+                form.boletimInternoData
+            }
+          );
 
-await carregarMilitares();
+          setMensagem(
+            "Militar cadastrado com sucesso."
+          );
+
+          setMilitarSelecionado(
+            response.data
+          );
+
+          setMilitarCadastradoAgora(
+            response.data
+          );
+
+          await carregarMilitares();
 
           setBusca("");
 
@@ -738,56 +761,35 @@ await carregarMilitares();
         nomeCompleto: "",
 
         postoGraduacaoId:
-
           manterPG
-
-            ?
-
-            form.postoGraduacaoId
-
-            :
-
-            "",
+            ? form.postoGraduacaoId
+            : "",
 
         nomeGuerra: "",
 
         segmento:
-
           manterSegmento
-
-            ?
-
-            form.segmento
-
-            :
-
-            "",
+            ? form.segmento
+            : "",
 
         cursoId:
-
           manterCurso
-
-            ?
-
-            form.cursoId
-
-            :
-
-            "",
+            ? form.cursoId
+            : "",
 
         dataNascimento: "",
 
         subunidade:
-
           manterSubunidade
+            ? form.subunidade
+            : "",
 
-            ?
+        tafAlternativo: false,
 
-            subunidadeInput
+        boletimInternoNumero: "",
 
-            :
+        boletimInternoData: ""
 
-            ""
       });
 
       if (!manterSubunidade) {
@@ -1328,7 +1330,26 @@ async function excluirMilitar() {
                                 .join("/")
                             : "",
 
-                        subunidade: nomeSU
+                        subunidade: nomeSU,
+
+                        tafAlternativo:
+                          militar.tafAlternativo ?? false,
+
+                        boletimInternoNumero:
+                          militar.boletimInternoNumero ?? "",
+
+                        boletimInternoData:
+                          militar.boletimInternoData
+                            ? new Date(
+                                militar.boletimInternoData
+                              )
+                                .toISOString()
+                                .slice(0,10)
+                                .split("-")
+                                .reverse()
+                                .join("/")
+                            : ""
+
                       });
                     }}
           className="
@@ -1614,33 +1635,220 @@ async function excluirMilitar() {
       </label>
       </div>
 
-      {/* DATA NASCIMENTO */}
+      <div className="space-y-2">
+
+  <div className="flex items-start gap-3">
+
+    {/* DATA DE NASCIMENTO */}
+    <div className="flex-1 min-w-0">
 
       <input
         type="text"
-        placeholder="Data de Nascimento"
         value={form.dataNascimento}
         onChange={(e) =>
           setForm({
-
             ...form,
-
-            dataNascimento:
-              formatarDataBR(
-                e.target.value
-              )
+            dataNascimento: e.target.value
           })
         }
+        placeholder="Data de Nascimento"
+        className="w-full border rounded-xl p-3"
+      />
+
+    </div>
+
+    {/* TAF ALTERNATIVO */}
+    <div className="w-[150px] shrink-0">
+
+      {/* CAIXA PRINCIPAL — MESMA ALTURA DA DATA DE NASCIMENTO */}
+      <label
         className="
+          flex
+          items-center
+          justify-between
+          w-full
           border
           rounded-xl
           p-3
+          text-sm
+          font-medium
+          h-[50px]
         "
-        maxLength={10}
-        required={!militarSelecionado}
-      />
+      >
+
+        <span className="whitespace-nowrap">
+          TAF Alternativo
+        </span>
+
+        <input
+          type="checkbox"
+          checked={form.tafAlternativo}
+          disabled={!ehAdministrador}
+          onChange={(e) => {
+
+            const marcado =
+              e.target.checked;
+
+            if (marcado && !militarSelecionado) {
+
+              window.alert(
+                "Selecione um militar antes de marcar TAF Alternativo."
+              );
+
+              return;
+            }
+
+            if (!marcado) {
+
+              const confirmar =
+                window.confirm(
+                  `Confirma a retirada da autorização de TAF Alternativo deste militar?\n\nMilitar: ${form.nomeCompleto}`
+                );
+
+              if (!confirmar) {
+                return;
+              }
+
+              setForm({
+                ...form,
+                tafAlternativo: false,
+                boletimInternoNumero: "",
+                boletimInternoData: ""
+              });
+
+              return;
+            }
+
+            const confirmar =
+              window.confirm(
+                `CONFIRMAÇÃO DE TAF ALTERNATIVO\n\nMilitar: ${form.nomeCompleto}\n\nConfirma que este é o militar correto e que existe autorização em Boletim Interno?`
+              );
+
+            if (!confirmar) {
+              return;
+            }
+
+            setForm({
+              ...form,
+              tafAlternativo: true
+            });
+
+          }}
+          className="
+            h-[18px]
+            w-[18px]
+            shrink-0
+            accent-green-700
+            cursor-pointer
+          "
+        />
+
+      </label>
+
+      {/* BI — SOMENTE QUANDO TAF ALTERNATIVO ESTIVER MARCADO */}
+      {form.tafAlternativo && (
+
+        <div className="grid grid-cols-[auto_36px_auto_1fr] items-center gap-1 w-full mt-2">
+
+            <span className="text-xs whitespace-nowrap">
+                BI
+            </span>
+
+              <input
+                type="text"
+                value={form.boletimInternoNumero}
+                onChange={(e) => {
+
+                  const valor =
+                    e.target.value.replace(/\D/g, "");
+
+                  setForm({
+                    ...form,
+                    boletimInternoNumero: valor
+                  });
+
+                }}
+                placeholder="Nº"
+                disabled={!ehAdministrador}
+                className="
+                  border
+                  rounded-lg
+                  px-1
+                  py-1
+                  w-full
+                  min-w-0
+                  text-xs
+                  text-center
+                "
+              />
+
+              <span className="text-xs whitespace-nowrap">
+                , de
+              </span>
+
+              <input
+                type="text"
+                value={form.boletimInternoData}
+                onChange={(e) => {
+
+                  let valor =
+                    e.target.value.replace(/\D/g, "");
+
+                  if (valor.length > 8) {
+                    valor = valor.slice(0, 8);
+                  }
+
+                  if (valor.length >= 5) {
+
+                    valor =
+                      valor.replace(
+                        /^(\d{2})(\d{2})(\d+)/,
+                        "$1/$2/$3"
+                      );
+
+                  } else if (valor.length >= 3) {
+
+                    valor =
+                      valor.replace(
+                        /^(\d{2})(\d+)/,
+                        "$1/$2"
+                      );
+
+                  }
+
+                  setForm({
+                    ...form,
+                    boletimInternoData: valor
+                  });
+
+                }}
+                placeholder="__/__/____"
+                maxLength={10}
+                disabled={!ehAdministrador}
+                className="
+                  border
+                  rounded-lg
+                  px-1
+                  py-1
+                  w-full
+                  min-w-[70px]
+                  text-xs
+                  text-center
+                "
+              />
+
+            </div>
+
+            )}
+
+          </div>
+
+        </div>
+
+      </div>
 
       {/* SUBUNIDADE */}
+
       <div className="space-y-2">
 
         <input

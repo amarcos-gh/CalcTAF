@@ -175,6 +175,9 @@ export default function Avaliacoes() {
 
   idadeMilitar >= 40;
 
+  const tafAlternativo =
+    militarSelecionado?.tafAlternativo === true;
+
     useEffect(() => {
 
       async function atualizarResultado() {
@@ -564,11 +567,14 @@ setAvaliacoes(
 
   async function selecionarMilitar(militar) {
 
-    setMilitarSelecionado(militar);
+    setMilitarSelecionado({
+      ...militar,
+      tafAlternativo: militar.tafAlternativo === true
+    });
 
     setBuscaMilitar(
       `${militar.postoGraduacao?.abreviacao || ""} ${militar.nomeGuerra} - ${militar.nomeCompleto}`
-    );
+  );
 
     // =====================================================
     // CHAMADA SELECIONADA
@@ -1656,14 +1662,50 @@ return (
 
                       }
 
-                  </div>
+                    </div>
 
               </div>
 
           </div>
 
+          {/* ============================
+              TAF ALTERNATIVO
+          ============================ */}
+
+          {militarSelecionado?.tafAlternativo === true && (
+
+            <div className="mt-4 flex justify-center">
+
+                <div
+                    className="
+                        inline-flex
+                        items-center
+                        justify-center
+                        rounded-xl
+                        border-2
+                        border-red-600
+                        bg-red-50
+                        px-6
+                        py-3
+                        text-red-700
+                        font-extrabold
+                        text-lg
+                        tracking-wide
+                        shadow-md
+                        animate-pulse
+                    "
+                >
+
+                    ⚠️ TAF ALTERNATIVO
+
+                </div>
+
+            </div>
+
+        )}
+
         {/* ============================
-              ÍNDICES + RESULTADO
+              ÃNDICES + RESULTADO
           ============================ */}
 
           <div className="grid grid-cols-12 gap-6">

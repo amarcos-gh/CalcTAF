@@ -238,43 +238,6 @@ async function buscarIndiceTAF({
   return registros[0];
 
 }
-/*
-======================================================
-FUNÇÃO DESATIVADA EM 01/08/2026
-
-Motivo:
-Substituída pela função buscarIndiceTAF(), que faz
-a busca por faixas (idadeMin/idadeMax e valorMin/valorMax).
-
-Mantida temporariamente para rollback, caso necessário.
-======================================================
-// ======================================================
-// BUSCAR MENÇÃO
-// ======================================================
-
-async function buscarMencao(dados) {
-
-  const tabela = await obterTabelaIndices();
-
-  const registro = tabela.find((item) =>
-
-    item.segmento === dados.segmento &&
-    item.cursoCodigo === dados.curso &&
-    item.exercicio === dados.exercicio &&
-    Number(item.idade) === Number(dados.idade) &&
-    Number(item.valor) === Number(dados.valor)
-
-  );
-
-  return registro
-    ? registro.mencao
-    : MENCOES.NR;
-
-}
-======================================================
-FIM DA FUNÇÃO DESATIVADA
-======================================================
-*/
 
 // ======================================================
 // CALCULAR MENÇÃO
@@ -617,14 +580,19 @@ export function calcularSuficiencia50Mais({
     mencaoCorrida,
     mencaoFlexao,
     mencaoAbdominal
-  ].filter(
-    (mencao) =>
-      mencao !== null &&
-      mencao !== undefined &&
-      mencao !== "" &&
-      mencao !== MENCOES.NR &&
-      mencao !== MENCOES.NF
-  );
+  ]
+    .filter(
+      (mencao) =>
+        mencao !== null &&
+        mencao !== undefined &&
+        String(mencao).trim() !== "" &&
+        String(mencao).trim().toUpperCase() !== MENCOES.NR &&
+        String(mencao).trim().toUpperCase() !== MENCOES.NF
+    )
+    .map(
+      (mencao) =>
+        String(mencao).trim().toUpperCase()
+    );
 
   if (mencoes.length === 0) {
     return "";
@@ -646,7 +614,7 @@ export function calcularSuficiencia50Mais({
         mencao === MENCOES.E ||
         mencao === MENCOES.MB ||
         mencao === MENCOES.B ||
-        mencao === MENCOES.S
+        mencao === "S"
     )
   ) {
     return "S";
@@ -663,6 +631,7 @@ export async function processarAvaliacao({
   segmento,
   curso,
   idade,
+  tafAlternativo = false,
   corrida,
   flexao,
   abdominal,
@@ -740,49 +709,59 @@ export async function processarAvaliacao({
 
   if (
     resultado.status ===
-    STATUS_AVALIACAO.AVALIADO
-  ) {
+      STATUS_AVALIACAO.AVALIADO
+    ) {
 
-    if (Number(idade) >= 50) {
+      if (Number(idade) >= 50) {
 
-      mencaoFinal = "";
+        mencaoFinal = "";
 
-      suficiencia =
-        calcularSuficiencia50Mais({
-
-          mencaoCorrida,
-
-          mencaoFlexao,
-
-          mencaoAbdominal
-
-        });
-
-    } else {
-
-      if (
-        mencaoFinal === MENCOES.E ||
-        mencaoFinal === MENCOES.MB ||
-        mencaoFinal === MENCOES.B ||
-        mencaoFinal === "S"
-      ) {
-
-        suficiencia = "S";
-
-      } else if (
-        mencaoFinal === MENCOES.R ||
-        mencaoFinal === MENCOES.I
-      ) {
-
-        suficiencia = "NS";
+        suficiencia =
+          calcularSuficiencia50Mais({
+            mencaoCorrida,
+            mencaoFlexao,
+            mencaoAbdominal
+          });
 
       } else {
 
-        suficiencia = "";
+        if (
+          mencaoFinal === MENCOES.E ||
+          mencaoFinal === MENCOES.MB ||
+          mencaoFinal === MENCOES.B ||
+          mencaoFinal === "S"
+        ) {
+
+          suficiencia = "S";
+
+        } else if (
+          mencaoFinal === MENCOES.R ||
+          mencaoFinal === MENCOES.I
+        ) {
+
+          suficiencia = "NS";
+
+        } else {
+
+          suficiencia = "";
+
+        }
 
       }
 
-    }
+      if (tafAlternativo === true) {
+
+        if (suficiencia === "S") {
+
+          suficiencia = "S/TA";
+
+        } else if (suficiencia === "NS") {
+
+          suficiencia = "NS/TA";
+
+        }
+
+      }
 
   }
 

@@ -17,6 +17,11 @@ export default function FichaAvaliacao({
   onSalvou
 }) {
 
+  const tafAlternativo =
+    militar?.tafAlternativo === true ||
+    militar?.tafAlternativo === 1 ||
+    militar?.tafAlternativo === "true";
+
   const [mensagem, setMensagem] = useState("");
   const [salvando, setSalvando] = useState(false);
 
@@ -92,47 +97,49 @@ export default function FichaAvaliacao({
 
       try {
 
-        const retorno =
-          await processarAvaliacao({
+    const retorno =
+      await processarAvaliacao({
 
-            segmento:
-              militar.segmento,
+        segmento:
+          militar.segmento,
 
-            curso:
-              cursoCodigo,
+        curso:
+          cursoCodigo,
 
-            idade,
+        idade,
 
-            corrida:
-              form.corrida === ""
-                ? null
-                : Number(form.corrida),
+        tafAlternativo,
 
-            flexao:
-              form.flexao === ""
-                ? null
-                : Number(form.flexao),
+        corrida:
+          form.corrida === ""
+            ? null
+            : Number(form.corrida),
 
-            abdominal:
-              form.abdominal === ""
-                ? null
-                : Number(form.abdominal),
+        flexao:
+          form.flexao === ""
+            ? null
+            : Number(form.flexao),
 
-            barra:
-              aplicaBarra
-                ? (
-                    form.barra === ""
-                      ? null
-                      : Number(form.barra)
-                  )
-                : null,
+        abdominal:
+          form.abdominal === ""
+            ? null
+            : Number(form.abdominal),
 
-            ppm:
-              aplicaPPM
-                ? (form.ppm || null)
-                : null
+        barra:
+          aplicaBarra
+            ? (
+                form.barra === ""
+                  ? null
+                  : Number(form.barra)
+              )
+            : null,
 
-          });
+        ppm:
+          aplicaPPM
+            ? (form.ppm || null)
+            : null
+
+      });
 
         setResultado(retorno);
 
@@ -400,6 +407,27 @@ export default function FichaAvaliacao({
         {militar.nomeGuerra}
 
       </h2>
+
+      {tafAlternativo && (
+        <div className="mb-6 flex justify-center">
+          <div
+            className="
+              border-2
+              border-red-600
+              text-red-600
+              font-extrabold
+              text-lg
+              px-4
+              py-2
+              rounded-lg
+              animate-pulse
+              text-center
+            "
+          >
+            ⚠️ TAF ALTERNATIVO
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
 

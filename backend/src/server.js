@@ -110,7 +110,7 @@ app.use((req, res, next) => {
 
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 const httpsOptions = {
   key: fs.readFileSync(

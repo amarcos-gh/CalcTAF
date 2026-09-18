@@ -20,18 +20,20 @@ timeout /t 3 /nobreak >nul
 netstat -ano | findstr /R /C:":3000 .*LISTENING" >nul 2>&1
 
 if %errorlevel%==0 (
-    start "" "http://localhost:3000"
+    start "" "https://desktop-5cto8dd:3000"
     endlocal
     exit /b 0
 )
 
 cd /d "%BACKEND%"
 
+set "PORT=3000"
+
 start "" /b "%NODE%" "%BACKEND%\src\server.js"
 
 timeout /t 5 /nobreak >nul
 
-start "" "http://localhost:3000"
+start "" "https://desktop-5cto8dd:3000"
 
 endlocal
 exit /b 0

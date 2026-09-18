@@ -1,15 +1,21 @@
-const CACHE_NAME = "calctaf-campo-v5";
+const CACHE_NAME = "calctaf-campo-v6";
 
 const BASE_URL =
   self.registration.scope;
 
 const APP_SHELL = [
+  `${BASE_URL}coleta`,
   `${BASE_URL}`,
   `${BASE_URL}index.html`,
   `${BASE_URL}manifest.webmanifest`,
   `${BASE_URL}icon/logo_192.png`,
   `${BASE_URL}icon/logo_512.png`
 ];
+
+
+// ======================================================
+// INSTALAÇÃO
+// ======================================================
 
 self.addEventListener("install", (event) => {
 
@@ -29,6 +35,10 @@ self.addEventListener("install", (event) => {
 
 });
 
+
+// ======================================================
+// ATIVAÇÃO
+// ======================================================
 
 self.addEventListener("activate", (event) => {
 
@@ -69,6 +79,10 @@ self.addEventListener("activate", (event) => {
 });
 
 
+// ======================================================
+// FETCH
+// ======================================================
+
 self.addEventListener("fetch", (event) => {
 
   const request =
@@ -85,19 +99,6 @@ self.addEventListener("fetch", (event) => {
   const url =
     new URL(request.url);
 
-  /*
-   * O Service Worker só deve atuar
-   * dentro do escopo /coleta.
-   */
-
-  if (
-    !url.pathname.startsWith("/coleta")
-  ) {
-
-    return;
-
-  }
-
   if (
     url.origin !==
     self.location.origin
@@ -107,59 +108,151 @@ self.addEventListener("fetch", (event) => {
 
   }
 
+
+  // ====================================================
+  // NAVEGAÇÃO DO CALCTAF CAMPO
+  // ====================================================
+
+  if (
+    request.mode === "navigate" &&
+    url.pathname.startsWith("/coleta")
+  ) {
+
+    event.respondWith(
+
+      fetch(request, {
+        cache: "no-store"
+      })
+
+        .then((response) => {
+
+          /*
+           * Se o servidor responder 401/403
+           * para uma rota como /coleta/login,
+           * entregamos o App Shell /coleta.
+           */
+
+          if (
+            response.status === 401 ||
+            response.status === 403
+          ) {
+
+            return caches.match(
+              `${BASE_URL}coleta`
+            );
+
+          }
+
+          if (
+            response &&
+            response.status === 200 &&
+            response.type === "basic"
+          ) {
+
+            const responseClone =
+              response.clone();
+
+            caches.open(
+              CACHE_NAME
+            )
+              .then((cache) => {
+
+                cache.put(
+                  `${BASE_URL}coleta`,
+                  responseClone
+                );
+
+              });
+
+          }
+
+          return response;
+
+        })
+
+        .catch(() =>
+
+          caches.match(
+            `${BASE_URL}coleta`
+          )
+
+        )
+
+    );
+
+    return;
+
+  }
+
+
+  // ====================================================
+  // ARQUIVOS ESTÁTICOS DO APLICATIVO
+  // ====================================================
+
+  const ehArquivoEstatico =
+
+    url.pathname.startsWith("/assets/") ||
+
+    url.pathname.startsWith("/icon/") ||
+
+    url.pathname.endsWith(
+      "manifest.webmanifest"
+    );
+
+
+  if (!ehArquivoEstatico) {
+
+    return;
+
+  }
+
+
+  // ====================================================
+  // REDE PRIMEIRO
+  // ====================================================
+
   event.respondWith(
 
-    caches.match(request)
+    fetch(request)
 
-      .then((cachedResponse) => {
+      .then((response) => {
 
-        if (cachedResponse) {
+        if (
+          response &&
+          response.status === 200 &&
+          response.type === "basic"
+        ) {
 
-          return cachedResponse;
+          const responseClone =
+            response.clone();
+
+          caches.open(
+            CACHE_NAME
+          )
+            .then((cache) => {
+
+              cache.put(
+                request,
+                responseClone
+              );
+
+            });
 
         }
 
-        return fetch(request)
+        return response;
 
-          .then((response) => {
+      })
 
-            if (
-              response &&
-              response.status === 200 &&
-              response.type === "basic"
-            ) {
+      .catch(() =>
 
-              const responseClone =
-                response.clone();
+        caches.match(request)
 
-              caches.open(
-                CACHE_NAME
-              )
+          .then((cachedResponse) => {
 
-                .then((cache) => {
+            if (cachedResponse) {
 
-                  cache.put(
-                    request,
-                    responseClone
-                  );
-
-                });
-
-            }
-
-            return response;
-
-          })
-
-          .catch(() => {
-
-            if (
-              request.mode === "navigate"
-            ) {
-
-              return caches.match(
-                BASE_URL
-              );
+              return cachedResponse;
 
             }
 
@@ -171,9 +264,9 @@ self.addEventListener("fetch", (event) => {
               }
             );
 
-          });
+          })
 
-      })
+      )
 
   );
 

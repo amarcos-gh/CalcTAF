@@ -16,35 +16,35 @@ const router = Router();
 router.post(
   "/",
   auth,
-  autorizar("ADMINISTRADOR", "OPERADOR"),
+  autorizar("ADMINISTRADOR", "CADASTRADOR"),
   criarMilitar
 );
 
 router.put(
   "/:id",
   auth,
-  autorizar("ADMINISTRADOR", "OPERADOR"),
+  autorizar("ADMINISTRADOR", "CADASTRADOR"),
   atualizarMilitar
 );
 
 router.delete(
   "/:id",
   auth,
-  autorizar("ADMINISTRADOR", "OPERADOR"),
+  autorizar("ADMINISTRADOR", "CADASTRADOR"),
   excluirMilitar
 );
 
 router.get(
   "/",
   auth,
-  autorizar("ADMINISTRADOR", "OPERADOR", "AVALIADOR"),
+  autorizar("ADMINISTRADOR", "CADASTRADOR", "AVALIADOR"),
   listarMilitares
 );
 
 router.post(
   "/importar",
   auth,
-  autorizar("ADMINISTRADOR", "OPERADOR"),
+  autorizar("ADMINISTRADOR", "CADASTRADOR"),
   importarMilitares
 );
 

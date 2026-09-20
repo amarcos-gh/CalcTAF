@@ -563,7 +563,7 @@ export async function atualizarUsuario(req, res) {
     // =====================================================
     // USUÁRIO SEM PERFIL
     // Somente o GERAL ou o ADMINISTRADOR da própria OM
-    // poderá atribuir OPERADOR ou AVALIADOR.
+    // poderá atribuir CADASTRADOR ou AVALIADOR.
     // =====================================================
 
     if (
@@ -586,14 +586,14 @@ export async function atualizarUsuario(req, res) {
 
       if (
         perfilLogado === "ADMINISTRADOR" &&
-        perfilAtualizado !== "OPERADOR" &&
+        perfilAtualizado !== "CADASTRADOR" &&
         perfilAtualizado !== "AVALIADOR"
       ) {
 
         return res.status(403).json({
 
           error:
-            "O ADMINISTRADOR pode atribuir somente os perfis OPERADOR e AVALIADOR."
+            "O ADMINISTRADOR pode atribuir somente os perfis CADASTRADOR e AVALIADOR."
 
         });
 
@@ -623,7 +623,7 @@ export async function atualizarUsuario(req, res) {
 
     // =====================================================
     // ADMINISTRADOR
-    // Pode administrar somente OPERADOR e AVALIADOR
+    // Pode administrar somente CADASTRADOR e AVALIADOR
     // da própria OM.
     // =====================================================
 
@@ -632,19 +632,19 @@ export async function atualizarUsuario(req, res) {
     ) {
 
       if (
-        usuarioAtual.perfil === "OPERADOR" ||
+        usuarioAtual.perfil === "CADASTRADOR" ||
         usuarioAtual.perfil === "AVALIADOR"
       ) {
 
         if (
-          perfilAtualizado !== "OPERADOR" &&
+          perfilAtualizado !== "CADASTRADOR" &&
           perfilAtualizado !== "AVALIADOR"
         ) {
 
           return res.status(403).json({
 
             error:
-              "O ADMINISTRADOR pode administrar somente OPERADOR e AVALIADOR."
+              "O ADMINISTRADOR pode administrar somente CADASTRADOR e AVALIADOR."
 
           });
 
@@ -1455,7 +1455,7 @@ export async function atenderAtivacaoPerfil(req, res) {
 
       "ADMINISTRADOR",
 
-      "OPERADOR",
+      "CADASTRADOR",
 
       "AVALIADOR"
 

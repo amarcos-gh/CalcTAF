@@ -264,7 +264,7 @@ export default function Configuracoes() {
       nome: "",
       email: "",
       senha: "",
-      perfil: "OPERADOR",
+      perfil: "CADASTRADOR",
       omId: "",
       subunidade: ""
     });
@@ -1532,8 +1532,8 @@ export default function Configuracoes() {
                     ADMINISTRADOR
                   </option>
 
-                  <option value="OPERADOR">
-                    OPERADOR
+                  <option value="CADASTRADOR">
+                    CADASTRADOR
                   </option>
 
                   <option value="AVALIADOR">

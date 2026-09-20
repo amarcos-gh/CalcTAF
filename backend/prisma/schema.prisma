@@ -184,7 +184,7 @@ model SolicitacaoAcesso {
 
 enum PerfilUsuario {
   ADMINISTRADOR
-  OPERADOR
+  CADASTRADOR
   AVALIADOR
   GERAL
 }
@@ -237,3 +237,4 @@ model LogExclusaoAvaliacao {
   militar Militar    @relation(fields: [militarId], references: [id])
   chamada ChamadaTAF @relation(fields: [chamadaId], references: [id])
 }
+

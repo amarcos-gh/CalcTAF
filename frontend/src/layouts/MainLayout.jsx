@@ -39,7 +39,7 @@ export default function MainLayout({
   const podeMilitares =
     isGeral ||
     perfil === "ADMINISTRADOR" ||
-    perfil === "OPERADOR" ||
+    perfil === "CADASTRADOR" ||
     perfil === "AVALIADOR";
 
 
@@ -57,7 +57,7 @@ export default function MainLayout({
   const podeRelatorios =
     isGeral ||
     perfil === "ADMINISTRADOR" ||
-    perfil === "OPERADOR" ||
+    perfil === "CADASTRADOR" ||
     perfil === "AVALIADOR";
 
 

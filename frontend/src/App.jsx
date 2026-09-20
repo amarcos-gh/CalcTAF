@@ -1,4 +1,4 @@
-﻿import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import MainLayout from "./layouts/MainLayout";
 
@@ -47,7 +47,7 @@ export default function App() {
           <Route
             path="/militares"
             element={
-              <ProtectedRoute permissoes={["ADMINISTRADOR", "OPERADOR", "AVALIADOR"]}>
+              <ProtectedRoute permissoes={["ADMINISTRADOR", "CADASTRADOR", "AVALIADOR"]}>
                 <MainLayout>
                   <Militares />
                 </MainLayout>
@@ -83,7 +83,7 @@ export default function App() {
               <ProtectedRoute
                 permissoes={[
                   "ADMINISTRADOR",
-                  "OPERADOR",
+                  "CADASTRADOR",
                   "AVALIADOR"
                 ]}
               >
